@@ -73,7 +73,7 @@
   };
 
   /* ------------------------------------------------------------ 启动 */
-  fetch("/api/health")
+  fetch("api/health")
     .then(function (r) { return r.json(); })
     .then(function (d) {
       badgeModel.textContent = d.model + " · 知识库就绪";
@@ -285,7 +285,7 @@
     setBusy(true);
     lastFailed = { text: text, history: history };
 
-    fetch("/api/chat", {
+    fetch("api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: text, history: history, session_id: sessionId })
@@ -383,7 +383,7 @@
     drawerBody.innerHTML = "";
     drawerMeta.textContent = "加载中…";
     // 只请求自己的记录：按 session_id 过滤，而不是拉取全部。
-    fetch("/api/logs?limit=60&session_id=" + encodeURIComponent(sessionId))
+    fetch("api/logs?limit=60&session_id=" + encodeURIComponent(sessionId))
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.enabled) {
@@ -400,7 +400,7 @@
         records.forEach(function (r) { drawerBody.appendChild(renderLogItem(r)); });
         drawerBody.appendChild(el(
           "div", "log-empty",
-          "这里只显示你自己的记录。查看所有会话的记录请访问 /allNpc/（管理视角）。"
+          "这里只显示你自己的记录。查看所有会话的记录请访问 /agentnpc/allNpc/（管理视角）。"
         ));
       })
       .catch(function () {
@@ -432,7 +432,7 @@
     drawerMemory.hidden = false;
     memoryBody.innerHTML = "";
     memoryMeta.textContent = "会话 " + sessionId;
-    fetch("/api/memory/" + encodeURIComponent(sessionId))
+    fetch("api/memory/" + encodeURIComponent(sessionId))
       .then(function (r) { return r.json(); })
       .then(function (d) {
         var s = d.profile || {};
@@ -486,7 +486,7 @@
   }
   if (btnMemoryClear) {
     btnMemoryClear.addEventListener("click", function () {
-      fetch("/api/memory/" + encodeURIComponent(sessionId), { method: "DELETE" })
+      fetch("api/memory/" + encodeURIComponent(sessionId), { method: "DELETE" })
         .then(function (r) { return r.json(); })
         .then(function (d) {
           memoryMeta.textContent = d.cleared ? "已清除该会话记忆" : "本来就没有记录";
@@ -500,7 +500,7 @@
   var btnDesign = document.getElementById("btn-design");
   if (btnDesign) {
     btnDesign.addEventListener("click", function () {
-      window.open("/design", "_blank");
+      window.open("design", "_blank");
     });
   }
 
@@ -509,7 +509,7 @@
   var btnReports = document.getElementById("btn-reports");
   if (btnReports) {
     btnReports.addEventListener("click", function () {
-      window.open("/report", "_blank");
+      window.open("report", "_blank");
     });
   }
 

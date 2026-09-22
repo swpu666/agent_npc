@@ -41,6 +41,12 @@ def design_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "design.html")
 
 
+@app.get("/homework", include_in_schema=False)
+def homework_page() -> FileResponse:
+    """作业题逐条解答页（HTML）。按《AI 原生开发岗位作业题》逐条对照说明实现。"""
+    return FileResponse(STATIC_DIR / "homework.html")
+
+
 @app.get("/allNpc/", include_in_schema=False)
 def allnpc_page() -> FileResponse:
     """所有会话的使用记录（管理视角）。

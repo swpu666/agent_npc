@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<base href="/agentnpc/" />
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>使用记录 · 全部会话（管理视角）</title>
 <style>
@@ -106,11 +107,11 @@
     var list = document.getElementById("list");
     meta.textContent = "加载中…";
     list.innerHTML = "";
-    fetch("/api/logs/stats")
+    fetch("api/logs/stats")
       .then(function (r) { return r.json(); })
       .then(renderCards)
       .catch(function () {});
-    fetch("/api/logs/all?limit=200")
+    fetch("api/logs/all?limit=200")
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.enabled) {

@@ -1,188 +1,482 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>设计文档 · 王者荣耀训练向导 Agent</title>
-<style>
-  :root{
-    --bg:#0a0f1e; --bg2:#0d1428; --panel:#121a33; --panel2:#161f3d;
-    --line:#243057; --text:#e9eefb; --dim:#9aa6c8; --faint:#6b7699;
-    --cyan:#5ad3ea; --blue:#6c8cff; --green:#45d483; --amber:#f0c46a; --red:#ff7b7b;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:radial-gradient(1200px 500px at 70% -10%, #17214855, transparent),
-    linear-gradient(180deg,var(--bg),var(--bg2) 55%);color:var(--text);
-    font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;font-size:14px;line-height:1.75}
-  .wrap{max-width:1120px;margin:0 auto;padding:0 22px 80px}
-  a{color:var(--cyan);text-decoration:none}
-  a:hover{text-decoration:underline}
-  code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;color:var(--cyan);
-    background:rgba(90,211,234,.08);padding:1px 6px;border-radius:6px}
-  .hero{padding:58px 0 34px;border-bottom:1px solid var(--line)}
-  .kicker{color:var(--cyan);font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
-  h1{font-size:34px;line-height:1.25;margin:0 0 14px;letter-spacing:-.01em}
-  h1 .accent{background:linear-gradient(90deg,var(--cyan),var(--blue));-webkit-background-clip:text;
-    background-clip:text;color:transparent}
-  .lead{color:var(--dim);font-size:15.5px;max-width:760px;margin:0}
-  .stat-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:30px 0 0}
-  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
-  .stat .v{font-size:26px;font-weight:700;color:var(--text)}
-  .stat .k{color:var(--dim);font-size:12px;margin-top:2px}
-  h2{font-size:19px;margin:44px 0 6px}
-  .hint{color:var(--faint);font-size:12.5px;margin:0 0 18px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 19px}
-  .card h3{margin:0 0 9px;font-size:15px}
-  .card h3 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:2px}
-  .card p{color:var(--dim);font-size:13px;margin:0}
-  .card .foot{margin-top:10px;font-size:12px;color:var(--faint)}
-  .d-cyan .dot{background:var(--cyan)} .d-green .dot{background:var(--green)}
-  .d-amber .dot{background:var(--amber)} .d-blue .dot{background:var(--blue)}
-  .d-red .dot{background:var(--red)}
-  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:6px 0}
-  .step{flex:1 1 130px;min-width:130px;background:var(--panel);border:1px solid var(--line);
-    border-radius:12px;padding:12px 13px}
-  .step .n{font-size:11px;color:var(--faint)}
-  .step .t{font-size:13px;font-weight:600;margin:2px 0 4px}
-  .step .d{font-size:11.5px;color:var(--dim);line-height:1.5}
-  .arrow{align-self:center;color:var(--faint);font-size:16px}
-  table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
-  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-  th{color:var(--dim);font-weight:500;background:rgba(255,255,255,.02)}
-  .ok{color:var(--green);font-weight:600}
-  .bug{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--red);
-    border-radius:12px;padding:15px 17px;margin:11px 0}
-  .bug h4{margin:0 0 6px;font-size:14px;color:var(--text)}
-  .bug p{margin:0;color:var(--dim);font-size:13px}
-  .bug .fix{margin-top:8px;font-size:12.5px;color:var(--green)}
-  .footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:var(--faint);font-size:12.5px}
-</style>
+  <meta charset="utf-8">
+  <base href="/agentnpc/" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>设计文档 · 王者荣耀训练向导 Agent</title>
+  <style>
+    :root {
+      --bg: #0a0f1e;
+      --bg2: #0d1428;
+      --panel: #121a33;
+      --panel2: #161f3d;
+      --line: #243057;
+      --text: #e9eefb;
+      --dim: #9aa6c8;
+      --faint: #6b7699;
+      --cyan: #5ad3ea;
+      --blue: #6c8cff;
+      --green: #45d483;
+      --amber: #f0c46a;
+      --red: #ff7b7b;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 500px at 70% -10%, #17214855, transparent),
+        linear-gradient(180deg, var(--bg), var(--bg2) 55%);
+      color: var(--text);
+      font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      line-height: 1.75
+    }
+
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 22px 80px
+    }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none
+    }
+
+    a:hover {
+      text-decoration: underline
+    }
+
+    code {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 12.5px;
+      color: var(--cyan);
+      background: rgba(90, 211, 234, .08);
+      padding: 1px 6px;
+      border-radius: 6px
+    }
+
+    .hero {
+      padding: 58px 0 34px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .kicker {
+      color: var(--cyan);
+      font-size: 12.5px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 12px
+    }
+
+    h1 {
+      font-size: 34px;
+      line-height: 1.25;
+      margin: 0 0 14px;
+      letter-spacing: -.01em
+    }
+
+    h1 .accent {
+      background: linear-gradient(90deg, var(--cyan), var(--blue));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent
+    }
+
+    .lead {
+      color: var(--dim);
+      font-size: 15.5px;
+      max-width: 760px;
+      margin: 0
+    }
+
+    .stat-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin: 30px 0 0
+    }
+
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 16px
+    }
+
+    .stat .v {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text)
+    }
+
+    .stat .k {
+      color: var(--dim);
+      font-size: 12px;
+      margin-top: 2px
+    }
+
+    h2 {
+      font-size: 19px;
+      margin: 44px 0 6px
+    }
+
+    .hint {
+      color: var(--faint);
+      font-size: 12.5px;
+      margin: 0 0 18px
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 14px
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px 19px
+    }
+
+    .card h3 {
+      margin: 0 0 9px;
+      font-size: 15px
+    }
+
+    .card h3 .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: 2px
+    }
+
+    .card p {
+      color: var(--dim);
+      font-size: 13px;
+      margin: 0
+    }
+
+    .card .foot {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--faint)
+    }
+
+    .d-cyan .dot {
+      background: var(--cyan)
+    }
+
+    .d-green .dot {
+      background: var(--green)
+    }
+
+    .d-amber .dot {
+      background: var(--amber)
+    }
+
+    .d-blue .dot {
+      background: var(--blue)
+    }
+
+    .d-red .dot {
+      background: var(--red)
+    }
+
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: stretch;
+      margin: 6px 0
+    }
+
+    .step {
+      flex: 1 1 130px;
+      min-width: 130px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 13px
+    }
+
+    .step .n {
+      font-size: 11px;
+      color: var(--faint)
+    }
+
+    .step .t {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 2px 0 4px
+    }
+
+    .step .d {
+      font-size: 11.5px;
+      color: var(--dim);
+      line-height: 1.5
+    }
+
+    .arrow {
+      align-self: center;
+      color: var(--faint);
+      font-size: 16px
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 10px 0
+    }
+
+    th,
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top
+    }
+
+    th {
+      color: var(--dim);
+      font-weight: 500;
+      background: rgba(255, 255, 255, .02)
+    }
+
+    .ok {
+      color: var(--green);
+      font-weight: 600
+    }
+
+    .bug {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--red);
+      border-radius: 12px;
+      padding: 15px 17px;
+      margin: 11px 0
+    }
+
+    .bug h4 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: var(--text)
+    }
+
+    .bug p {
+      margin: 0;
+      color: var(--dim);
+      font-size: 13px
+    }
+
+    .bug .fix {
+      margin-top: 8px;
+      font-size: 12.5px;
+      color: var(--green)
+    }
+
+    .footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--faint);
+      font-size: 12.5px
+    }
+  </style>
 </head>
+
 <body>
-<div class="wrap">
+  <div class="wrap">
 
-  <div class="hero">
-    <div class="kicker">Design Highlights · 设计文档亮点</div>
-    <h1>王者荣耀训练向导「小玖」<br>一个<span class="accent">规则优先</span>的游戏问答 Agent</h1>
-    <p class="lead">
-      网页提问 → 意图路由 → 按需检索本地知识库 → 单次模型生成 → 分层展示来源。
-      核心思路：<b>能用规则和模板解决的事，绝不调用模型</b>；答不上来的话，绝不装懂。
-    </p>
-    <div class="stat-strip">
-      <div class="stat"><div class="v">185</div><div class="k">单元测试 passed</div></div>
-      <div class="stat"><div class="v">100%</div><div class="k">18 例 × 2 次离线评测全指标</div></div>
-      <div class="stat"><div class="v">33 条</div><div class="k">知识库 · 5 类主题 · 0 错误</div></div>
-      <div class="stat"><div class="v">61.1%</div><div class="k">问答真正调用模型（其余走模板）</div></div>
-      <div class="stat"><div class="v">36 项</div><div class="k">开发中定位并修正的真实缺陷</div></div>
+    <div class="hero">
+      <div class="kicker">Design Highlights · 设计文档亮点</div>
+      <h1>王者荣耀训练向导「小玖」<br>一个<span class="accent">规则优先</span>的游戏问答 Agent</h1>
+      <p class="lead">
+        网页提问 → 意图路由 → 按需检索本地知识库 → 单次模型生成 → 分层展示来源。
+        核心思路：<b>能用规则和模板解决的事，绝不调用模型</b>；答不上来的话，绝不装懂。
+      </p>
+      <div class="stat-strip">
+        <div class="stat">
+          <div class="v">185</div>
+          <div class="k">单元测试 passed</div>
+        </div>
+        <div class="stat">
+          <div class="v">100%</div>
+          <div class="k">18 例 × 2 次离线评测全指标</div>
+        </div>
+        <div class="stat">
+          <div class="v">33 条</div>
+          <div class="k">知识库 · 5 类主题 · 0 错误</div>
+        </div>
+        <div class="stat">
+          <div class="v">61.1%</div>
+          <div class="k">问答真正调用模型（其余走模板）</div>
+        </div>
+        <div class="stat">
+          <div class="v">36 项</div>
+          <div class="k">开发中定位并修正的真实缺陷</div>
+        </div>
+      </div>
+    </div>
+
+    <h2>一次请求怎么走</h2>
+    <p class="hint">五步管线，每一步都是纯函数、可独立单测；意图与检索都在本地完成，不到 1ms。</p>
+    <div class="flow">
+      <div class="step">
+        <div class="n">① 归一化</div>
+        <div class="t">文本预处理</div>
+        <div class="d">全半角 / 错别字别名（安其拉→安琪拉）/ 指代检测 / 注入检测</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="n">② 意图路由</div>
+        <div class="t">规则 → 继承 → 兜底</div>
+        <div class="d">四类意图 + 四个路由状态；规则命中 0 次模型调用</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="n">③ 检索</div>
+        <div class="t">BM25 + 字段加权</div>
+        <div class="d">同义词扩展、版本折扣、阈值判定、Top-K 边际裁剪</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="n">④ 生成</div>
+        <div class="t">模板 或 单次模型</div>
+        <div class="d">能确定的走模板（毫秒级），其余单次生成、非流式</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="n">⑤ 后处理</div>
+        <div class="t">引用校验</div>
+        <div class="d">来源必须来自本次检索；否则清空，绝不伪造</div>
+      </div>
+    </div>
+
+    <h2>六个关键设计决策</h2>
+    <p class="hint">每一条都对应一个踩过的坑，而不是"看起来很有道理"的空话。</p>
+    <div class="grid">
+      <div class="card d-cyan">
+        <h3><span class="dot"></span>规则优先，模型只是兜底</h3>
+        <p>意图层先走正则与词表打分，命中就 0 次模型调用；不确定先继承上下文，最后才模型兜底。
+          实测只有 <b>61.1%</b> 的问答真正调用模型，其余（越界 / 未收录 / 需补条件 / 没听懂）走确定性模板。</p>
+        <div class="foot">「123456」从花 1.3 秒判成越界，优化为 0ms 拟人化回应</div>
+      </div>
+      <div class="card d-green">
+        <h3><span class="dot"></span>回答的依据强度是分层的</h3>
+        <p>每条回答都标明依据：<b>有知识库依据</b>（带来源卡片）/ <b>通用理解</b>（kb_gap，不展示来源）/
+          <b>未收录</b>（kb_miss，如实说不知道）/ <b>没听懂</b>。玩家一眼能看出"这条回答有多可信"。
+        </p>
+        <div class="foot">无资料支持时 <code>citations: []</code>，绝不填占位来源</div>
+      </div>
+      <div class="card d-amber">
+        <h3><span class="dot"></span>未命中 ≠ 能力范围外</h3>
+        <p>题目那句"不要把资料未命中判成能力范围外"，落成了两条<b>零降级路径</b>的独立分支：
+          <code>kb_miss</code>（知识没收录）与 <code>out_of_scope</code>（要求未接入能力）互不转换。
+        </p>
+        <div class="foot">「巅峰赛积分怎么算」如实说未收录，而不是说"这超出我的能力"</div>
+      </div>
+      <div class="card d-blue">
+        <h3><span class="dot"></span>评测必须可复核</h3>
+        <p>LLM 评审要逐要点给出<b>原文证据</b>，并逐字校验证据是否真在回答里——
+          因为评审模型自己也会编证据。实测把"证据可复核率"从 83.87% 修到 100%。</p>
+        <div class="foot">HTML 报告把回答 / 证据 / 判决并排呈现，可离线抽查</div>
+      </div>
+      <div class="card d-red">
+        <h3><span class="dot"></span>记忆系统，但不越界</h3>
+        <p>会话画像只统计<b>"问了什么"</b>（主题 / 位置 / 英雄），不推断"喜欢玩什么"——
+          从"问得多"推"喜欢玩"这一步没有依据，猜错会持续污染后续回答。</p>
+        <div class="foot">跨会话聚合"没答上来"的问题，用真实数据驱动知识库迭代</div>
+      </div>
+      <div class="card d-green">
+        <h3><span class="dot"></span>指标的分母都写死</h3>
+        <p>检索命中率只统计检索层（6 例），不掺生成质量；评审耗时单列、不计入 Agent 耗时；
+          耗时按"调用模型 / 走模板"分开——混在一起会得出"均值小于 P50"这种不可解释的数字。</p>
+        <div class="foot">每个指标都能回答"这个数字是怎么算出来的"</div>
+      </div>
+    </div>
+
+    <h2>实测结果（deepseek-chat，18 例 × 2 次）</h2>
+    <p class="hint">全部数字都是真实跑出来的，报告见 <code>eval/reports/report_final*.{json,md,html}</code>。</p>
+    <table>
+      <tr>
+        <th>指标</th>
+        <th>结果</th>
+        <th>分母与口径</th>
+      </tr>
+      <tr>
+        <td>意图准确率</td>
+        <td class="ok">100.00%</td>
+        <td>全部 18 例（含注入与多轮）</td>
+      </tr>
+      <tr>
+        <td>知识检索命中率</td>
+        <td class="ok">100.00%</td>
+        <td>需要资料的 6 例（只看检索层）</td>
+      </tr>
+      <tr>
+        <td>回答通过率</td>
+        <td class="ok">100.00%</td>
+        <td>全部 18 例（规则断言 + 评审双双通过）</td>
+      </tr>
+      <tr>
+        <td>评审证据可复核率</td>
+        <td class="ok">100.00%</td>
+        <td>评审判为"已覆盖"的 39 个要点</td>
+      </tr>
+      <tr>
+        <td>响应耗时</td>
+        <td class="ok">本地 &lt;1ms</td>
+        <td>意图 + 检索合计 0.7ms；99.9% 花在模型生成</td>
+      </tr>
+      <tr>
+        <td>对话回放</td>
+        <td class="ok">14 段 / 40 轮 0 失败</td>
+        <td>另一套不判分、只留存行为的检验手段</td>
+      </tr>
+    </table>
+
+    <h2>最有含金量的部分：36 项真实缺陷</h2>
+    <p class="hint">这些不是"AI 写代码"的炫技，而是"AI 写的代码被我查出来并修掉"的记录，每项都有失败证据。</p>
+
+    <div class="bug">
+      <h4>① <code>S36+</code> 被归一化成 <code>s36</code> —— 版本折扣静默失效</h4>
+      <p>归一化把 <code>+</code> 当标点删掉，正则 <code>s(\d+)\+</code> 永远匹配不上。不报错、不影响其他功能，
+        只有单测断言能抓住这种"看起来正常其实不生效"的缺陷。</p>
+      <div class="fix">修正：版本号改用只保留 <code>+ - ~</code> 的轻量归一化。</div>
+    </div>
+
+    <div class="bug">
+      <h4>② <code>反野</code> 既是主题词又不在知识库词表 → 检索为空 → 模型编出"插眼"</h4>
+      <p>两个判断互相抵消：是主题词（于是不拼历史），又检不到（于是没材料）。模型没有依据，
+        就自己引入了同类游戏才有的"插眼"机制。Mock 模式下完全看不出来，接真实模型才暴露。</p>
+      <div class="fix">修正：检索改为"指代句直接补上下文 + 检不到再重试"，并在提示词禁止引入材料外的机制名词。</div>
+    </div>
+
+    <div class="bug">
+      <h4>③ 评测自身也是需要被验证的产出物</h4>
+      <p>T05 被误判违规——回答引用的"主宰一般在暴君之后被争夺"正是知识库原文，是判分规则不可执行；
+        评审证据可复核率只有 83.87%，逐条抽查后确认是评审用"……"省略拼接，不是编造。</p>
+      <div class="fix">修正：判分规则量化到可执行 + 新增 <code>judge_note</code> 传达出题意图 + 证据按省略号分段校验。</div>
+    </div>
+
+    <div class="footer">
+      完整设计文档见仓库根目录 <code>DESIGN.md</code>（含 §4.6 八轮改进记录、§6 每个缺陷的发现方式与失败证据），
+      使用说明见 <code>README.md</code>。
+
+      演示入口：<a href="./">玩家页面</a> · <a href="homework">作业题解答</a> · <a href="report">评测报告</a> · <a
+        href="allNpc/">全部使用记录（管理视角）</a>。
     </div>
   </div>
-
-  <h2>一次请求怎么走</h2>
-  <p class="hint">五步管线，每一步都是纯函数、可独立单测；意图与检索都在本地完成，不到 1ms。</p>
-  <div class="flow">
-    <div class="step"><div class="n">① 归一化</div><div class="t">文本预处理</div>
-      <div class="d">全半角 / 错别字别名（安其拉→安琪拉）/ 指代检测 / 注入检测</div></div>
-    <div class="arrow">→</div>
-    <div class="step"><div class="n">② 意图路由</div><div class="t">规则 → 继承 → 兜底</div>
-      <div class="d">四类意图 + 四个路由状态；规则命中 0 次模型调用</div></div>
-    <div class="arrow">→</div>
-    <div class="step"><div class="n">③ 检索</div><div class="t">BM25 + 字段加权</div>
-      <div class="d">同义词扩展、版本折扣、阈值判定、Top-K 边际裁剪</div></div>
-    <div class="arrow">→</div>
-    <div class="step"><div class="n">④ 生成</div><div class="t">模板 / 模型 二选一</div>
-      <div class="d">模板=预写死文本、0 次模型调用（越界/未收录/补条件/没听懂）；其余单次生成</div></div>
-    <div class="arrow">→</div>
-    <div class="step"><div class="n">⑤ 后处理</div><div class="t">引用校验</div>
-      <div class="d">来源由代码取自检索结果、非模型声称；对不上就清空，绝不伪造</div></div>
-  </div>
-
-  <h2>六个关键设计决策</h2>
-  <p class="hint">每一条都对应一个踩过的坑，而不是"看起来很有道理"的空话。</p>
-  <div class="grid">
-    <div class="card d-cyan">
-      <h3><span class="dot"></span>规则优先，模型只是兜底</h3>
-      <p>意图层先走正则与词表打分，命中就 0 次模型调用；不确定先继承上下文，最后才模型兜底。
-      实测只有 <b>61.1%</b> 的问答真正调用模型，其余（越界 / 未收录 / 需补条件 / 没听懂）走确定性模板。</p>
-      <div class="foot">规则命中通常 &lt;1ms，模型兜底一次要 0.8–1.2 秒——"规则优先"不只是偏好，是实打实的延迟差</div>
-    </div>
-    <div class="card d-green">
-      <h3><span class="dot"></span>回答的依据强度是分层的</h3>
-      <p>每条回答都标明依据：<b>有知识库依据</b>（带来源卡片）/ <b>通用理解</b>（kb_gap，不展示来源）/
-      <b>未收录</b>（kb_miss，如实说不知道）/ <b>没听懂</b>。玩家一眼能看出"这条回答有多可信"。</p>
-      <div class="foot">无资料支持时 <code>citations: []</code>，绝不填占位来源</div>
-    </div>
-    <div class="card d-amber">
-      <h3><span class="dot"></span>未命中 ≠ 能力范围外</h3>
-      <p>题目那句"不要把资料未命中判成能力范围外"，落成了两条<b>零降级路径</b>的独立分支：
-      <code>kb_miss</code>（知识没收录）与 <code>out_of_scope</code>（要求未接入能力）互不转换。</p>
-      <div class="foot">「巅峰赛积分怎么算」如实说未收录，而不是说"这超出我的能力"</div>
-    </div>
-    <div class="card d-blue">
-      <h3><span class="dot"></span>评测必须可复核</h3>
-      <p>LLM 评审要逐要点给出<b>原文证据</b>，并逐字校验证据是否真在回答里——
-      因为评审模型自己也会编证据。实测把"证据可复核率"从 83.87% 修到 100%。</p>
-      <div class="foot">HTML 报告把回答 / 证据 / 判决并排呈现，可离线抽查</div>
-    </div>
-    <div class="card d-red">
-      <h3><span class="dot"></span>记忆系统：让知识库从真实使用里长出来</h3>
-      <p>两个层次：① 会话画像记住"你常问什么"，让后续回答更贴合关注点；② 跨会话把
-      <b>"没答上来"的问题</b>按被问次数排序——被反复问到却没收录的，就是知识库最该补的。
-      这是从"拍脑袋猜用户会问什么"到"从真实流量里长知识库"的闭环。</p>
-      <div class="foot">克制点：只统计"问了什么"、不推断"喜欢玩什么"；≥3 轮才注入、可一键清除</div>
-    </div>
-    <div class="card d-green">
-      <h3><span class="dot"></span>指标的分母都写死</h3>
-      <p>检索命中率只统计检索层（6 例），不掺生成质量；评审耗时单列、不计入 Agent 耗时；
-      耗时按"调用模型 / 走模板"分开——混在一起会得出"均值小于 P50"这种不可解释的数字。</p>
-      <div class="foot">每个指标都能回答"这个数字是怎么算出来的"</div>
-    </div>
-  </div>
-
-  <h2>实测结果（deepseek-chat，18 例 × 2 次）</h2>
-  <p class="hint">全部数字都是真实跑出来的，报告见 <code>eval/reports/report_final*.{json,md,html}</code>。</p>
-  <table>
-    <tr><th>指标</th><th>结果</th><th>分母与口径</th></tr>
-    <tr><td>意图准确率</td><td class="ok">100.00%</td><td>全部 18 例（含注入与多轮）</td></tr>
-    <tr><td>知识检索命中率</td><td class="ok">100.00%</td><td>需要资料的 6 例（只看检索层）</td></tr>
-    <tr><td>回答通过率</td><td class="ok">100.00%</td><td>全部 18 例（规则断言 + 评审双双通过）</td></tr>
-    <tr><td>评审证据可复核率</td><td class="ok">100.00%</td><td>评审判为"已覆盖"的 39 个要点</td></tr>
-    <tr><td>响应耗时</td><td class="ok">本地 &lt;1ms</td><td>意图 + 检索合计 0.7ms；99.9% 花在模型生成</td></tr>
-    <tr><td>对话回放</td><td class="ok">14 段 / 40 轮 0 失败</td><td>另一套不判分、只留存行为的检验手段</td></tr>
-  </table>
-
-  <h2>最有含金量的部分：36 项真实缺陷</h2>
-  <p class="hint">这些不是"AI 写代码"的炫技，而是"AI 写的代码被我查出来并修掉"的记录，每项都有失败证据。</p>
-
-  <div class="bug">
-    <h4>① <code>S36+</code> 被归一化成 <code>s36</code> —— 版本折扣静默失效</h4>
-    <p><code>S36+</code> 是王者荣耀的赛季版本号（S=赛季、S36=第36赛季、+=及以后），在本文里只是
-    <b>单元测试的样本</b>，并非真实知识库内容。归一化把 <code>+</code> 当标点删掉，正则永远匹配不上——
-    不报错、不影响其他功能，只有单测断言能抓住这种"看起来正常其实不生效"的缺陷。</p>
-    <div class="fix">修正：版本号改用只保留 <code>+ - ~</code> 的轻量归一化。</div>
-  </div>
-
-  <div class="bug">
-    <h4>② <code>反野</code> 既是主题词又不在知识库词表 → 检索为空 → 模型编出"插眼"</h4>
-    <p>两个判断互相抵消：是主题词（于是不拼历史），又检不到（于是没材料）。模型没有依据，
-    就自己引入了同类游戏才有的"插眼"机制。Mock 模式下完全看不出来，接真实模型才暴露。</p>
-    <div class="fix">修正：检索改为"指代句直接补上下文 + 检不到再重试"，并在提示词禁止引入材料外的机制名词。
-    修正后答复（引用打野职责条目）："被反野按顺序处理——先判断能不能打、再换野区别空转、顺手抓一波补损失；怕的是硬守。"</div>
-  </div>
-
-  <div class="bug">
-    <h4>③ 评测自身也是需要被验证的产出物</h4>
-    <p>T05 被误判违规——回答引用的"主宰一般在暴君之后被争夺"正是知识库原文，是判分规则不可执行；
-    评审证据可复核率只有 83.87%，逐条抽查后确认<b>不是评审编造</b>，而是评审用「……」跳读、把两段原文拼在一起引用
-    （这是合法引用），是我的校验器要求"整段连续"才误判。把校验改成按省略号切段后回到 100%。</p>
-    <div class="fix">修正：判分规则量化到可执行 + 新增 <code>judge_note</code> 传达出题意图 + 证据按省略号分段校验。</div>
-  </div>
-
-  <div class="footer">
-    完整设计文档见仓库根目录 <code>DESIGN.md</code>（含 §4.6 八轮改进记录、§6 每个缺陷的发现方式与失败证据），
-    使用说明见 <code>README.md</code>。
-    演示入口：<a href="/">玩家页面</a> · <a href="/report">评测报告</a> · <a href="/allNpc/">全部使用记录（管理视角）</a>。
-  </div>
-</div>
 </body>
+
 </html>
