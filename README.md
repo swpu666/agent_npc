@@ -17,7 +17,7 @@ app/
   main.py                 FastAPI 装配入口
   config.py               配置（全部来自 .env）
   schemas.py              接口请求/响应模型
-  api/chat.py             /api/chat、/api/health、/api/kb/stats、/api/logs、/api/reports、/api/memory
+  api/chat.py             /api/chat、health、kb/stats、logs、logs/all、logs/stats、reports、memory
   observability.py        使用记录：IP / 对话内容 / 意图 / 耗时 → logs/*.jsonl
   memory.py               长期记忆：会话画像 + 知识缺口聚合 → app/data/memory/*.json
   agent/
@@ -43,7 +43,7 @@ eval/
   dialogues/              case 设计说明 + 14 段对话脚本 + 逐轮记录
   reports/                评测报告（json + md + html 三份）
 logs/                     使用记录（含 IP 与对话内容，已被 .gitignore 忽略）
-tests/                    185 个单测（意图 / 检索 / 编排 / 接口 / 判分 / 知识库自检 / 记录 / 记忆）
+tests/                    190 个单测（意图 / 检索 / 编排 / 接口 / 判分 / 知识库自检 / 记录 / 记忆）
 ```
 
 ---
@@ -86,8 +86,10 @@ uvicorn app.main:app --port 8000
 浏览器打开 <http://127.0.0.1:8000/>。页面支持连续追问、清空对话、等待状态、失败重发，
 知识类回答下方会展示实际使用的来源（标题 / 链接 / 采集日期 / 适用版本 / 相关度）。
 
-右上角三个入口：**玩家画像**（本会话的提问画像 + 跨会话的知识缺口，可一键清除）、
-**评测报告**（`GET /report`，网页里直接逐条抽查最近一次评测）、**使用记录**（最近 60 条问答）。
+右上角四个入口：**设计文档**（`GET /design`，本项目的设计亮点展示页）、
+**玩家画像**（本会话的提问画像 + 跨会话的知识缺口，可一键清除）、
+**评测报告**（`GET /report`，网页里直接逐条抽查最近一次评测）、
+**使用记录**（最近 60 条，**只显示自己这个会话的**）。
 
 ### 4. 跑离线评测
 
@@ -232,8 +234,9 @@ Mock 模式**不会调用任何真实模型**，会在三处显著标识：页�
 | --- | --- |
 | `GET /api/health` | 服务状态、模型名、是否 Mock |
 | `GET /api/kb/stats` | 知识库统计（条目数、主题与来源强度分布） |
-| `GET /api/logs?limit=50&days=7` | 最近的使用记录（最新在前）；页面右上角「使用记录」按钮即调用它 |
-| `GET /api/logs/stats?days=7` | 使用记录的聚合统计（按意图/路由状态/日期、独立 IP 数、错误数、平均耗时） |
+| `GET /api/logs?limit=50&days=7&session_id=xxx` | **自己视角**：只返回该会话的记录；不带 `session_id` 时不返回任何记录。页面「使用记录」按钮即调用它 |
+| `GET /api/logs/all?limit=100&days=7` | **管理视角**：返回所有会话的记录（供 `/allNpc/` 页面调用） |
+| `GET /api/logs/stats?days=7&session_id=xxx` | 使用记录的聚合统计（按意图/路由状态/日期、独立 IP 数、错误数、平均耗时），可选择性按会话过滤 |
 | `GET /api/reports` | 列出可查看的评测报告（标签、时间、模型、准确率、是否已生成 HTML） |
 | `GET /api/reports/{name}/html` | 某次报告的 HTML；旧报告没有 .html 时用当前代码即时渲染 |
 | `GET /api/memory/{session_id}` | 查看该会话的画像（系统记住了什么，玩家自己也能看） |
@@ -248,12 +251,18 @@ Mock 模式**不会调用任何真实模型**，会在三处显著标识：页�
 时间、`request_id`、**客户端 IP**、`X-Forwarded-For`、User-Agent、`session_id`、
 **问题原文**、携带的历史轮数、意图、路由状态、**回答原文**、引用到的知识条目、分环节耗时、错误信息。
 
-页面右上角「使用记录」按钮可以直接查看最近 60 条——**玩家自己也能看到系统记了什么**，比"悄悄记录"透明。
+**自己视角 vs 管理视角是分开的**：
+- 页面右上角「使用记录」按钮，只显示**自己这个会话**的记录（按 `session_id` 过滤），玩家自己也能看到系统记了什么；
+- 查看**所有会话**的记录，走独立入口 <http://127.0.0.1:8000/allNpc/>（调用 `/api/logs/all`）。
 
 ```bash
-curl "http://127.0.0.1:8000/api/logs?limit=20"
-curl "http://127.0.0.1:8000/api/logs/stats?days=7"
+curl "http://127.0.0.1:8000/api/logs?limit=20&session_id=你的会话ID"   # 只看自己
+curl "http://127.0.0.1:8000/api/logs/all?limit=50"                     # 所有人（管理视角）
+curl "http://127.0.0.1:8000/api/logs/stats?days=7"                     # 聚合统计
 ```
+
+> **这不是安全边界**：`session_id` 可被前端伪造，`/api/logs/all` 与 `/allNpc/` 也没有鉴权，
+> 知道 URL 的人就能看到所有记录。它只是产品层面的"默认只看自己"，真正的隔离需要登录与鉴权。
 
 **隐私须知（重要，请先读完再用）**：
 
@@ -294,7 +303,7 @@ python -m pytest tests -q
 | 操作系统 | Windows 11（10.0.22621） |
 | Python | 3.12.0（代码兼容 3.11+） |
 | 被测 / 评审模型 | `deepseek-chat`（评审 `temperature=0`，独立调用、独立计时） |
-| 单测 | `pytest tests -q` → **185 passed** |
+| 单测 | `pytest tests -q` → **190 passed** |
 | 知识库自检 | `python -m app.tools.kb_lint --check-urls` → 33 条，5 类主题，**0 错误 0 警告，9 个来源链接全部 200** |
 | Mock 链路 | 服务可启动、页面可访问、`/api/chat` 返回完整字段 |
 | 对话回放 | `python -m eval.run_dialogues` → 14 段 / 40 轮，记录在 `eval/dialogues/records/` |

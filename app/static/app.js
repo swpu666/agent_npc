@@ -382,7 +382,8 @@
     drawer.hidden = false;
     drawerBody.innerHTML = "";
     drawerMeta.textContent = "加载中…";
-    fetch("/api/logs?limit=60")
+    // 只请求自己的记录：按 session_id 过滤，而不是拉取全部。
+    fetch("/api/logs?limit=60&session_id=" + encodeURIComponent(sessionId))
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.enabled) {
@@ -391,12 +392,16 @@
           return;
         }
         var records = d.records || [];
-        drawerMeta.textContent = records.length + " 条 · " + d.log_dir;
+        drawerMeta.textContent = "我的记录 " + records.length + " 条 · 会话 " + sessionId;
         if (!records.length) {
-          drawerBody.appendChild(el("div", "log-empty", "暂无记录。发几条问题后再来看。"));
+          drawerBody.appendChild(el("div", "log-empty", "这个会话还没有记录。发几条问题后再来看。"));
           return;
         }
         records.forEach(function (r) { drawerBody.appendChild(renderLogItem(r)); });
+        drawerBody.appendChild(el(
+          "div", "log-empty",
+          "这里只显示你自己的记录。查看所有会话的记录请访问 /allNpc/（管理视角）。"
+        ));
       })
       .catch(function () {
         drawerMeta.textContent = "读取失败";
@@ -488,6 +493,14 @@
           memoryBody.innerHTML = "";
           memoryBody.appendChild(memoryCard("已清除", ["这个会话的画像已被删除，后续会重新开始累积。"]));
         });
+    });
+  }
+
+  /* ------------------------------------------------------------ 设计文档 */
+  var btnDesign = document.getElementById("btn-design");
+  if (btnDesign) {
+    btnDesign.addEventListener("click", function () {
+      window.open("/design", "_blank");
     });
   }
 

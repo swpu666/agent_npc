@@ -33,7 +33,7 @@
 │   ├── config.py               # pydantic-settings 读取 .env（超时、模型、开关）
 │   ├── schemas.py              # 请求/响应 Pydantic 模型
 │   ├── api/
-│   │   └── chat.py             # POST /api/chat、health、kb/stats、logs、logs/stats
+│   │   └── chat.py             # POST /api/chat、health、kb/stats、logs、logs/all、logs/stats、reports、memory
 │   ├── observability.py        # 使用记录：IP / 对话内容 / 意图 / 耗时 → logs/*.jsonl
 │   ├── memory.py               # 长期记忆：会话级用户画像 + 跨会话知识缺口聚合
 │   ├── agent/
@@ -55,7 +55,9 @@
 │   └── static/
 │       ├── index.html          # 玩家使用页面
 │       ├── app.js              # 请求、状态机、历史管理、来源展示
-│       └── style.css
+│       ├── style.css
+│       ├── design.html         # 设计文档亮点展示页（GET /design）
+│       └── allnpc.html         # 全部会话使用记录（管理视角，GET /allNpc/）
 ├── eval/
 │   ├── run_eval.py             # 指标评测入口（CLI，支持 core / http 两种调用模式）
 │   ├── dataset/testset.jsonl   # 固定测试集（16 案例，带预期意图与要点断言）
@@ -69,7 +71,7 @@
 │   │   └── records/            # 逐轮记录（jsonl + Markdown 转录）
 │   └── reports/                # 评测产物（含未通过用例原文与评审证据，便于抽查）
 ├── logs/                       # 使用记录（含 IP 与对话内容，已被 .gitignore 忽略）
-├── tests/                      # 185 个单测：意图 / 检索 / 编排 / 接口 / 判分 / 记录 / 记忆
+├── tests/                      # 190 个单测：意图 / 检索 / 编排 / 接口 / 判分 / 记录 / 记忆
 │   ├── test_intent.py
 │   ├── test_retrieval.py
 │   ├── test_pipeline.py
@@ -160,7 +162,7 @@ Mock 结果单独存放于 `eval/reports/smoke_*.json`，**且不会出现在最
 | Python | 3.12.0（代码兼容 3.11+），依赖见 `requirements.txt`（已固定次要版本） |
 | 被测模型 | `deepseek-chat`（`https://api.deepseek.com/v1`），`LLM_TIMEOUT_S=20` |
 | 评审模型 | `deepseek-chat`，`temperature=0`，与被测生成分开调用、分开计时 |
-| 单测 | `python -m pytest tests -q` → **185 passed** |
+| 单测 | `python -m pytest tests -q` → **190 passed** |
 | 知识库自检 | `python -m app.tools.kb_lint --check-urls` → **33 条 / 5 类主题 / 0 错误 0 警告 / 9 个来源链接全部 200** |
 | 来源强度 | `direct`（页面直接写明）10 条，`topic`（覆盖主题但非逐句对应）23 条 |
 | 对话回放 | `python -m eval.run_dialogues` → **14 段 / 40 轮，0 失败**，记录见 `eval/dialogues/records/` |
@@ -250,8 +252,9 @@ Mock 链路验证结果（`MOCK_LLM=1 python -m eval.run_eval --tag smoke --no-j
 | --- | --- |
 | `GET /api/health` | 存活 + 当前模型名 + 是否 mock |
 | `GET /api/kb/stats` | 条目数、主题分布、来源强度分布、最近校验时间 |
-| `GET /api/logs?limit=50&days=7` | 最近的使用记录（最新在前）；页面右上角「使用记录」按钮即调用它 |
-| `GET /api/logs/stats?days=7` | 使用记录聚合：按意图 / 路由状态 / 日期分布、独立 IP 数、错误数、平均耗时 |
+| `GET /api/logs?limit=50&days=7&session_id=xxx` | **自己视角**：只返回该 `session_id` 的记录；不带 `session_id` 时不返回任何记录（避免误泄露）。玩家页面「使用记录」按钮即调用它 |
+| `GET /api/logs/all?limit=100&days=7` | **管理视角**：返回所有会话的记录（供 `/allNpc/` 页面调用） |
+| `GET /api/logs/stats?days=7&session_id=xxx` | 使用记录聚合：按意图 / 路由状态 / 日期分布、独立 IP 数、错误数、平均耗时；可选择性按会话过滤 |
 | `GET /api/reports` | 列出可查看的评测报告（标签、时间、模型、准确率、是否已生成 HTML） |
 | `GET /api/reports/{name}/html` | 某次报告的 HTML；旧报告没有 .html 时用当前代码即时渲染 |
 | `GET /api/memory/{session_id}` | 查看该会话的画像（系统到底记住了什么，玩家自己也能看） |
@@ -333,6 +336,15 @@ Mock 链路验证结果（`MOCK_LLM=1 python -m eval.run_eval --tag smoke --no-j
 
 页面右上角「使用记录」按钮打开抽屉即可查看最近 60 条，**玩家自己也能看到系统记了什么**，
 比"悄悄记录"透明。
+
+**自己视角 vs 管理视角是分开的**：玩家页面里的「使用记录」只显示**自己这个会话**的记录
+（按 `session_id` 过滤），要查看**所有会话**的记录，走独立入口 `GET /allNpc/`（调用 `/api/logs/all`）。
+这么分层的原因是——对普通玩家，别人的对话是隐私；对做效果复盘的评审，又需要看到全貌。
+两者不能共用一个"看全部"的入口。
+
+**必须说清楚的边界**：这种按 `session_id` 的过滤**不是安全边界**。前端可以伪造 `session_id`，
+`/api/logs/all` 和 `/allNpc/` 也没有任何鉴权——知道 URL 的人就能看到所有记录。
+它只是产品层面的"默认只看自己"，真正的隔离需要登录与鉴权，当前 Demo 没有账号体系。
 
 ### 2.4 长期记忆（会话级用户画像）
 

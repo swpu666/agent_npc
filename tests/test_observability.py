@@ -86,6 +86,28 @@ def test_broken_log_dir_does_not_raise(tmp_path) -> None:
     assert logger.recent() == []
 
 
+def test_recent_filters_by_session_id(tmp_path) -> None:
+    """「只看自己」的依据：recent 按 session_id 过滤。"""
+    logger = make_logger(tmp_path)
+    logger.log(RequestRecord(request_id="r-1", ip="1.1.1.1", message="a", session_id="s1"))
+    logger.log(RequestRecord(request_id="r-2", ip="2.2.2.2", message="b", session_id="s2"))
+    logger.log(RequestRecord(request_id="r-3", ip="3.3.3.3", message="c", session_id="s1"))
+
+    s1 = logger.recent(session_id="s1")
+    assert [r["message"] for r in s1] == ["c", "a"]
+    assert logger.recent(session_id="s-nonexistent") == []
+    assert len(logger.recent()) == 3  # 不带参数 = 全部（管理视角）
+
+
+def test_stats_filters_by_session_id(tmp_path) -> None:
+    logger = make_logger(tmp_path)
+    logger.log(RequestRecord(request_id="r-1", ip="1.1.1.1", message="a", session_id="s1", intent="chitchat"))
+    logger.log(RequestRecord(request_id="r-2", ip="2.2.2.2", message="b", session_id="s2", intent="knowledge_qa"))
+    assert logger.stats(session_id="s1")["total"] == 1
+    assert logger.stats(session_id="s1")["by_intent"] == {"chitchat": 1}
+    assert logger.stats()["total"] == 2
+
+
 def test_jsonl_is_one_line_per_record(tmp_path) -> None:
     logger = make_logger(tmp_path)
     logger.log(RequestRecord(request_id="r-1", ip="127.0.0.1", message="第一行\n第二行"))

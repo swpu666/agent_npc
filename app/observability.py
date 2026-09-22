@@ -122,14 +122,23 @@ class RequestLogger:
                         except json.JSONDecodeError:
                             continue
 
-    def recent(self, limit: int = 50, days: int = 7) -> list[dict]:
-        """返回最近 limit 条记录（最新的在前）。"""
+    def recent(self, limit: int = 50, days: int = 7, session_id: str | None = None) -> list[dict]:
+        """返回最近 limit 条记录（最新的在前）。
+
+        `session_id` 传入时只返回该会话的记录——这是"玩家只看自己记录"的隔离依据。
+        注意：这种按 `session_id` 过滤**不是**安全边界（前端可以伪造 session_id），
+        它只是产品层面的"默认只看自己"。真正的安全隔离需要登录与鉴权，当前 Demo 没有账号体系。
+        """
         records = list(self._iter_lines(days))
+        if session_id:
+            records = [r for r in records if r.get("session_id") == session_id]
         records.reverse()
         return records[: max(1, min(limit, 500))]
 
-    def stats(self, days: int = 7) -> dict:
+    def stats(self, days: int = 7, session_id: str | None = None) -> dict:
         records = list(self._iter_lines(days))
+        if session_id:
+            records = [r for r in records if r.get("session_id") == session_id]
         if not records:
             return {"total": 0, "days": days, "by_intent": {}, "by_day": {}, "unique_ips": 0}
         return {

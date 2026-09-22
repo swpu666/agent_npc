@@ -35,6 +35,22 @@ def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.get("/design", include_in_schema=False)
+def design_page() -> FileResponse:
+    """设计文档亮点展示页（HTML）。完整设计文档见 DESIGN.md。"""
+    return FileResponse(STATIC_DIR / "design.html")
+
+
+@app.get("/allNpc/", include_in_schema=False)
+def allnpc_page() -> FileResponse:
+    """所有会话的使用记录（管理视角）。
+
+    玩家主页面里的「使用记录」只显示各自的会话；要看所有人的记录，走这个独立入口。
+    注意：这里**没有鉴权**，只是演示"自己视角 vs 管理视角"的区分，上线必须加权限校验。
+    """
+    return FileResponse(STATIC_DIR / "allnpc.html")
+
+
 @app.get("/report", include_in_schema=False)
 def report_page():
     """最新一次评测报告的 HTML 页面。

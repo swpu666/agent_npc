@@ -159,21 +159,56 @@ def chat(payload: ChatRequest, request: Request):
 
 
 @router.get("/logs")
-def logs(limit: int = Query(default=50, ge=1, le=500), days: int = Query(default=7, ge=1, le=90)) -> dict:
-    """查看最近的使用记录（最新的在前）。数据来自本地 jsonl 文件。"""
+def logs(
+    limit: int = Query(default=50, ge=1, le=500),
+    days: int = Query(default=7, ge=1, le=90),
+    session_id: str | None = Query(default=None),
+) -> dict:
+    """查看**当前会话**的使用记录（最新的在前）。
+
+    玩家页面只允许看自己的记录：必须带 `session_id`，后端据此过滤。
+    不带 `session_id` 时不返回任何记录（而不是返回所有人）——避免误把别人的对话泄露出去。
+    """
+    settings = get_settings()
+    logger = get_request_logger(settings)
+    records = logger.recent(limit=limit, days=days, session_id=session_id) if session_id else []
+    return {
+        "enabled": settings.log_enabled,
+        "log_dir": str(logger.dir),
+        "scope": "self",
+        "session_id": session_id,
+        "privacy_note": "这里只显示你自己的记录（按 session_id 过滤）。查看所有人的记录请使用管理入口 /allNpc/。",
+        "records": records,
+    }
+
+
+@router.get("/logs/all")
+def logs_all(
+    limit: int = Query(default=100, ge=1, le=500),
+    days: int = Query(default=7, ge=1, le=90),
+) -> dict:
+    """查看**所有会话**的使用记录（管理视角，供 /allNpc/ 页面调用）。
+
+    说明：这里没有任何鉴权，**知道这个 URL 的人就能看到所有记录**。
+    它只是一个演示用的"管理员视角"，真正上线必须加登录与权限校验。
+    """
     settings = get_settings()
     logger = get_request_logger(settings)
     return {
         "enabled": settings.log_enabled,
         "log_dir": str(logger.dir),
-        "privacy_note": "记录含客户端 IP 与完整对话内容，仅用于本地调试与效果复盘；上线前须脱敏、告知并设置保留期。",
+        "scope": "all",
+        "privacy_note": "这是所有会话的记录（管理视角）。当前无鉴权，仅用于演示，上线前必须加权限校验。",
         "records": logger.recent(limit=limit, days=days),
     }
 
 
 @router.get("/logs/stats")
-def logs_stats(days: int = Query(default=7, ge=1, le=90)) -> dict:
-    return get_request_logger(get_settings()).stats(days=days)
+def logs_stats(
+    days: int = Query(default=7, ge=1, le=90),
+    session_id: str | None = Query(default=None),
+) -> dict:
+    return get_request_logger(get_settings()).stats(days=days, session_id=session_id)
 
 
 # --------------------------------------------------------------- 长期记忆

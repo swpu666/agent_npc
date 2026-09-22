@@ -136,6 +136,26 @@ def test_report_page_renders_or_guides(client: TestClient) -> None:
     assert ("离线评测报告" in body) or ("还没有评测报告" in body)
 
 
+def test_logs_self_view_requires_session_id(client: TestClient) -> None:
+    """不带 session_id 时不应返回任何人的记录（避免误泄露）。"""
+    resp = client.get("/api/logs")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["scope"] == "self"
+    assert body["records"] == []
+
+
+def test_logs_all_is_admin_view(client: TestClient) -> None:
+    resp = client.get("/api/logs/all")
+    assert resp.status_code == 200
+    assert resp.json()["scope"] == "all"
+
+
+def test_allnpc_page_and_design_page_are_served(client: TestClient) -> None:
+    assert client.get("/allNpc/").status_code == 200
+    assert client.get("/design").status_code == 200
+
+
 def test_memory_endpoints(client: TestClient) -> None:
     sid = "test-session-1"
     assert client.get(f"/api/memory/{sid}").status_code == 200
