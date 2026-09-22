@@ -1,0 +1,29 @@
+{
+  "session_id": "s1",
+  "turns": 2,
+  "intents": {
+    "knowledge_qa": 2
+  },
+  "topics": {
+    "地图机制": 2
+  },
+  "positions": {
+    "打野": 2
+  },
+  "heroes": {
+    "孙悟空": 1
+  },
+  "route_states": {
+    "null": 2
+  },
+  "recent_questions": [
+    "红BUFF有什么用？",
+    "暴君多久刷新？"
+  ],
+  "unresolved": [
+    "红BUFF有什么用？",
+    "暴君多久刷新？"
+  ],
+  "first_seen": "2026-09-22T16:45:01+08:00",
+  "last_seen": "2026-09-22T16:45:01+08:00"
+}

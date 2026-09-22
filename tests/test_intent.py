@@ -11,6 +11,7 @@ from app.agent.intent import (
     INTENT_SITUATIONAL,
     ROUTE_KB_GAP,
     ROUTE_NEED_MORE_INFO,
+    ROUTE_UNCLEAR_INPUT,
     classify,
 )
 
@@ -137,6 +138,56 @@ def test_kb_gap_when_question_is_hero_level(text: str) -> None:
 )
 def test_not_kb_gap_for_general_rules(text: str) -> None:
     assert classify(text).route_state != ROUTE_KB_GAP
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["安其拉是什么", "后裔厉害吗", "蔡文鸡怎么玩", "妲已是什么", "王昭军强吗"],
+)
+def test_hero_typos_are_recognised_as_hero_questions(text: str) -> None:
+    """错别字英雄名必须与正确写法得到同等对待。
+
+    实测问题：「安其拉」不在词表里 → 走 `kb_miss` 直接拒答；
+    而正确写法「安琪拉」走 `kb_gap` 给出通用介绍。同一个问题因为一个错别字
+    得到两种完全不同的对待，这不能接受。
+    """
+    assert classify(text).route_state == ROUTE_KB_GAP
+
+
+def test_hero_typo_is_canonicalised() -> None:
+    """上报给下游的英雄名要还原成规范写法，不能把玩家的错写念回去。"""
+    from app.agent.normalize import extract_conditions
+
+    assert extract_conditions("安其拉是什么")["hero"] == ["安琪拉"]
+    assert extract_conditions("蔡文鸡怎么玩")["hero"] == ["蔡文姬"]
+
+
+def test_kb_gap_inherited_for_unknown_hero_followup() -> None:
+    """连续追问英雄时，第二个英雄名即使完全不在词表里，也应继承覆盖缺口。
+
+    否则会出现：第一轮「孙悟空是什么」给了通用介绍，第二轮「那赵铁柱呢」
+    突然变成冷冰冰的"知识库未收录"——玩家问的明明是同一类问题。
+    """
+    history = [
+        {"role": "user", "content": "孙悟空是什么"},
+        {"role": "assistant", "content": "孙悟空是打野英雄。"},
+    ]
+    result = classify("那赵铁柱呢", history=history, prev_route_state=ROUTE_KB_GAP)
+    assert result.route_state == ROUTE_KB_GAP
+
+
+def test_kb_gap_not_inherited_without_anaphora() -> None:
+    """不带指代的独立新问题不该继承缺口，否则会把无关问题也放行。"""
+    result = classify("巅峰赛的积分是怎么计算的？", prev_route_state=ROUTE_KB_GAP)
+    assert result.route_state != ROUTE_KB_GAP
+
+
+@pytest.mark.parametrize("text", ["123456", "。。。。", "???", "asdfghjkl", "！@#￥%……"])
+def test_unclear_input_short_circuits(text: str) -> None:
+    """无法理解的输入在规则层就短路：不判越界、不调用模型兜底。"""
+    result = classify(text)
+    assert result.route_state == ROUTE_UNCLEAR_INPUT
+    assert result.source == "rule"
 
 
 def test_kb_gap_only_applies_to_knowledge_qa() -> None:

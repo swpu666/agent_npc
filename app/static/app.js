@@ -34,6 +34,23 @@
   var busy = false;
   var lastFailed = null;
 
+  // 会话标识：长期记忆按它隔离。没有账号体系，所以在浏览器本地生成并复用，
+  // 换浏览器/清缓存就是"换一个人"。放在 localStorage 而不是内存里，
+  // 是为了刷新页面后仍能接着累积（否则记忆每刷新一次就断了）。
+  var SESSION_KEY = "wzry-tutor-session";
+  var sessionId = (function () {
+    try {
+      var saved = window.localStorage.getItem(SESSION_KEY);
+      if (saved) return saved;
+      var made = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      window.localStorage.setItem(SESSION_KEY, made);
+      return made;
+    } catch (e) {
+      // 隐私模式等禁用了 localStorage：退化成"单次会话记忆"，不影响主流程
+      return "s" + Date.now().toString(36);
+    }
+  })();
+
   var INTENT_LABEL = {
     knowledge_qa: "知识问答",
     situational_advice: "情境建议",
@@ -43,7 +60,16 @@
   var ROUTE_LABEL = {
     need_more_info: "需要补充条件",
     kb_miss: "知识库未收录",
-    kb_gap: "知识库未覆盖"
+    kb_gap: "知识库未覆盖",
+    unclear_input: "没听明白"
+  };
+  // 意图判定的来源：规则命中是毫秒级，走模型兜底则要 1 秒上下。
+  // 把它显示出来，玩家/评审才能解释"为什么这一轮慢"——否则那个数字只是一个谜。
+  var INTENT_SOURCE_LABEL = {
+    rule: "规则命中",
+    inherit: "继承上下文",
+    llm: "模型兜底分类",
+    fallback: "默认兜底"
   };
 
   /* ------------------------------------------------------------ 启动 */
@@ -120,6 +146,11 @@
     if (payload.route_state && ROUTE_LABEL[payload.route_state]) {
       meta.appendChild(el("span", "tag tag-route", ROUTE_LABEL[payload.route_state]));
     }
+    // 只有"走了模型兜底"才标出来：这是意图耗时的唯一变因，标出来才解释得通
+    var intentSource = payload.debug && payload.debug.intent && payload.debug.intent.source;
+    if (intentSource === "llm" || intentSource === "fallback") {
+      meta.appendChild(el("span", "tag tag-note", "意图：" + (INTENT_SOURCE_LABEL[intentSource] || intentSource)));
+    }
     if (payload.mock) {
       meta.appendChild(el("span", "tag tag-note", "MOCK 结果"));
     }
@@ -139,8 +170,8 @@
     if (payload.route_state === "kb_gap") {
       wrap.appendChild(el(
         "div", "gap-notice",
-        "本条问题超出知识库覆盖范围（知识库只收录通用规则，没有英雄与使用率数据）。" +
-        "以上为通用理解，仅供参考，本次未引用任何知识库来源。"
+        "本条没有直接对应的知识条目（知识库只收录通用玩法规则，没有英雄资料与使用率数据）。" +
+        "以上为通用理解，仅供参考，因此不展示引用来源。"
       ));
     }
 
@@ -257,7 +288,7 @@
     fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text, history: history })
+      body: JSON.stringify({ message: text, history: history, session_id: sessionId })
     })
       .then(function (resp) {
         return resp.json().catch(function () { return {}; }).then(function (data) {
@@ -375,12 +406,110 @@
 
   function closeDrawer() { drawer.hidden = true; }
 
+  /* ------------------------------------------------------------ 玩家画像 */
+  var btnMemory = document.getElementById("btn-memory");
+  var drawerMemory = document.getElementById("drawer-memory");
+  var memoryBody = document.getElementById("memory-body");
+  var memoryMeta = document.getElementById("memory-meta");
+  var btnMemoryClose = document.getElementById("btn-memory-close");
+  var btnMemoryClear = document.getElementById("btn-memory-clear");
+
+  function memoryCard(title, lines) {
+    var card = el("div", "log-item");
+    card.appendChild(el("div", "log-head", title));
+    lines.forEach(function (line) {
+      card.appendChild(el("div", "log-a", line));
+    });
+    return card;
+  }
+
+  function openMemory() {
+    drawerMemory.hidden = false;
+    memoryBody.innerHTML = "";
+    memoryMeta.textContent = "会话 " + sessionId;
+    fetch("/api/memory/" + encodeURIComponent(sessionId))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var s = d.profile || {};
+        memoryBody.appendChild(memoryCard("系统记住的内容（本会话）", d.summary || []));
+        var detail = [];
+        if (s.turns) detail.push("提问次数：" + s.turns);
+        if (s.intents) {
+          detail.push("提问类型：" + Object.keys(s.intents).map(function (k) {
+            return INTENT_SHORT[k] || k;
+          }).join("、"));
+        }
+        if (s.heroes && Object.keys(s.heroes).length) {
+          detail.push("提到过的英雄：" + Object.keys(s.heroes).join("、"));
+        }
+        if (s.recent_questions && s.recent_questions.length) {
+          detail.push("最近问过：" + s.recent_questions.slice(-3).join(" ／ "));
+        }
+        if (detail.length) memoryBody.appendChild(memoryCard("明细", detail));
+        if (!d.enabled) {
+          memoryBody.appendChild(memoryCard("状态", ["长期记忆已在后端关闭（MEMORY_ENABLED=0）"]));
+        }
+        return fetch("/api/knowledge-gaps?limit=10").then(function (r) { return r.json(); });
+      })
+      .then(function (g) {
+        var lines = (g.gaps || []).map(function (item) {
+          return item.count > 1 ? item.question + "（被问 " + item.count + " 次）" : item.question;
+        });
+        memoryBody.appendChild(memoryCard(
+          "知识库未覆盖的问题（跨会话聚合，按被问次数排序）",
+          lines.length
+            ? lines
+            : ["暂时没有：最近问过的问题知识库都接住了。"]
+        ));
+        memoryBody.appendChild(el(
+          "div", "log-empty",
+          "说明：这里统计的是「知识库没有直接资料、只能靠通用理解回答」的问题，"
+          + "按被问次数排序——反复出现的就该补进知识库。"
+        ));
+      })
+      .catch(function () {
+        memoryBody.appendChild(memoryCard("读取失败", ["无法读取画像，请确认服务仍在运行。"]));
+      });
+  }
+
+  function closeMemory() { drawerMemory.hidden = true; }
+
+  if (btnMemory) btnMemory.addEventListener("click", openMemory);
+  if (btnMemoryClose) btnMemoryClose.addEventListener("click", closeMemory);
+  if (drawerMemory) {
+    drawerMemory.addEventListener("click", function (e) { if (e.target === drawerMemory) closeMemory(); });
+  }
+  if (btnMemoryClear) {
+    btnMemoryClear.addEventListener("click", function () {
+      fetch("/api/memory/" + encodeURIComponent(sessionId), { method: "DELETE" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          memoryMeta.textContent = d.cleared ? "已清除该会话记忆" : "本来就没有记录";
+          memoryBody.innerHTML = "";
+          memoryBody.appendChild(memoryCard("已清除", ["这个会话的画像已被删除，后续会重新开始累积。"]));
+        });
+    });
+  }
+
+  /* ------------------------------------------------------------ 评测报告 */
+  // 直接在服务端渲染的报告页打开；报告是自包含 HTML，也可以离线双击查看
+  var btnReports = document.getElementById("btn-reports");
+  if (btnReports) {
+    btnReports.addEventListener("click", function () {
+      window.open("/report", "_blank");
+    });
+  }
+
   if (btnLogs) btnLogs.addEventListener("click", openDrawer);
   if (btnDrawerClose) btnDrawerClose.addEventListener("click", closeDrawer);
   if (drawer) {
     drawer.addEventListener("click", function (e) { if (e.target === drawer) closeDrawer(); });
   }
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDrawer(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    closeDrawer();
+    closeMemory();
+  });
 
   // 示例问题使用事件委托，清空对话重建空状态后依然有效
   chatInner.addEventListener("click", function (e) {

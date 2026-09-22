@@ -21,10 +21,12 @@ from app.agent.intent import (
     ROUTE_KB_GAP,
     ROUTE_KB_MISS,
     ROUTE_NEED_MORE_INFO,
+    ROUTE_UNCLEAR_INPUT,
     IntentResult,
     classify,
 )
 from app.agent.llm import LLMClient, LLMError
+from app import memory
 from app.agent.normalize import detect_anaphora, extract_urls, is_no_coverage_leading
 from app.agent.retrieval import (
     KnowledgeBase,
@@ -58,6 +60,8 @@ class AgentResult:
     request_id: str = ""
     error: dict | None = None
     debug: dict | None = None
+    # 长期记忆的当前状态摘要（仅在带 session_id 调用时非空），用于页面展示"系统记住了什么"
+    memory: dict | None = None
 
 
 def _citation(doc: RetrievedDoc) -> dict:
@@ -91,11 +95,22 @@ class Agent:
         self.settings = settings or get_settings()
         self.llm = llm or LLMClient(self.settings)
         self.kb = kb or load_knowledge_base(str(KNOWLEDGE_FILE), self.settings.game_version)
+        self.memory = memory.MemoryStore(self.settings)
 
     # ------------------------------------------------------------------ 主链路
-    def answer(self, message: str, history: list[dict] | None = None) -> AgentResult:
+    def answer(
+        self,
+        message: str,
+        history: list[dict] | None = None,
+        session_id: str | None = None,
+    ) -> AgentResult:
         result = AgentResult(request_id=next_request_id(), model=self.llm.model, mock=self.settings.mock_llm)
         t_start = time.perf_counter()
+
+        # [0] 读取长期记忆（本地文件，实测 < 0.5ms）。放在最前面是因为它只影响后续
+        #     提示词的展开方向，不参与路由判定——记忆不该改变"这句话该走哪条路"。
+        profile = self.memory.load(session_id) if session_id else None
+        profile_note = memory.render_profile_note(profile)
 
         # [1] 意图路由（本地规则，通常 < 1ms）
         t0 = time.perf_counter()
@@ -137,10 +152,14 @@ class Agent:
         llm_ms = 0
         if intent_result.intent == INTENT_OUT_OF_SCOPE:
             result.answer = templates.out_of_scope_answer(intent_result.oos_reason)
+        elif result.route_state == ROUTE_UNCLEAR_INPUT:
+            # "没听懂"走模板：0 次模型调用、毫秒级返回，语气可以精心打磨成拟人化表达，
+            # 不必让模型临场发挥（也更省一次调用）。
+            result.answer = templates.unclear_input_answer(message)
         elif result.route_state == ROUTE_KB_MISS:
             result.answer = templates.kb_miss_answer(near_titles)
         elif result.route_state == ROUTE_NEED_MORE_INFO:
-                result.answer = templates.need_more_info_answer(intent_result.missing_conditions)
+            result.answer = templates.need_more_info_answer(intent_result.missing_conditions)
         else:
             messages = prompt_mod.build_messages(
                 intent=intent_result.intent,
@@ -154,6 +173,7 @@ class Agent:
                 conditions=intent_result.conditions,
                 missing_conditions=intent_result.missing_conditions,
                 already_asked_conditions=intent_result.already_asked_conditions,
+                profile_note=profile_note,
             )
             llm_result = self.llm.chat(messages)
             result.answer = llm_result.text
@@ -171,7 +191,10 @@ class Agent:
             # kb_gap：检索到的条目与问题核心诉求并不匹配，不展示任何来源。
             # 早期版本会把这类"半相关"条目当来源展示，玩家会误以为它支撑了回答。
             result.citations = []
-            result.guard["notes"].append("本条超出知识库覆盖范围，回答基于通用理解，未引用知识库来源")
+            result.guard["notes"].append(
+                "本条没有直接对应的知识条目，回答基于通用理解，因此不展示引用来源"
+                + (f"（检索到的 {len(docs)} 条材料仅作背景）" if docs else "")
+            )
         else:
             result.citations = [_citation(d) for d in docs]
             # 兜底：万一还有漏网的"半相关命中"，只要模型开门见山就说没收录，
@@ -197,6 +220,25 @@ class Agent:
         if self.settings.mock_llm:
             result.guard["notes"].append("MOCK 模式：未调用真实模型，结果不代表真实回答质量")
 
+        # [5] 更新长期记忆：只记录可观测的提问行为（问了什么、属于哪类、命中了哪个主题）。
+        #     写入失败不能影响回答，MemoryStore 内部已吞掉 OSError。
+        if session_id:
+            updated = self.memory.update(
+                session_id,
+                message=message,
+                intent=result.intent,
+                route_state=result.route_state,
+                doc_topics=[d.topic for d in docs],
+                conditions=intent_result.conditions,
+                answer_had_kb=bool(result.citations),
+            )
+            if updated:
+                result.memory = {
+                    "turns": updated.turns,
+                    "topics": dict(updated.topics),
+                    "profile_injected": bool(profile_note),
+                }
+
         result.debug = {
             "intent": result.intent_detail,
             "retrieval_used_history": used_history,
@@ -205,6 +247,7 @@ class Agent:
             # kb_gap 时检索到的"半相关"条目仍作为背景传给模型，但不展示为来源；
             # 放在 debug 里方便评审核对"到底检到了什么、为什么没展示"。
             "withheld_materials": [d.id for d in docs] if result.route_state == ROUTE_KB_GAP else [],
+            "profile_note": profile_note,
         }
         return result
 

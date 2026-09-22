@@ -1,0 +1,23 @@
+{
+  "session_id": "s2",
+  "turns": 1,
+  "intents": {
+    "knowledge_qa": 1
+  },
+  "topics": {
+    "地图机制": 1
+  },
+  "positions": {},
+  "heroes": {},
+  "route_states": {
+    "kb_miss": 1
+  },
+  "recent_questions": [
+    "巅峰赛积分怎么算？"
+  ],
+  "unresolved": [
+    "巅峰赛积分怎么算？"
+  ],
+  "first_seen": "2026-09-22T16:45:02+08:00",
+  "last_seen": "2026-09-22T16:45:02+08:00"
+}

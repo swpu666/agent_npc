@@ -45,7 +45,8 @@ OUT_OF_SCOPE_TEMPLATES: dict[str, str] = {
         f"{SCOPE_HINT}，换个游戏相关的问题我就派上用场了。"
     ),
     "default": (
-        "抱歉，这个请求超出我的能力范围了。我是训练向导，只能聊王者荣耀的基础玩法和规则。"
+        "这个我帮不上忙——我只会聊《王者荣耀》的玩法和规则。\n\n"
+        f"{SCOPE_HINT}。你换个游戏相关的问题，我马上就能接上。"
     ),
 }
 
@@ -78,6 +79,30 @@ NEED_MORE_INFO_TEMPLATE = (
     + "\n".join(f"{i}. {_NEED_MORE_INFO_QUESTIONS[k]}" for i, k in enumerate(_CONDITION_ORDER, 1))
     + "\n\n把这几点告诉我，我再帮你看该怎么打。"
 )
+
+
+# 无法理解输入时的回应。
+#
+# 为什么单独做一档：玩家发「123456」这类内容时，它不是"越界请求"（越界是要求了
+# 未接入的能力），而是"我没听明白"。早期版本把它交给模型兜底分类，结果是
+# 花 1.3 秒、判成 out_of_scope，回一句"这个请求超出我的能力范围了"——
+# **判断是错的，语气也不像人**。
+#
+# 用多个版式轮换是为了不像复读机；但选取方式必须是**确定性的**（按内容哈希），
+# 不能用真随机——否则同一个输入每次回答都不同，评测与回归都失去可比性。
+UNCLEAR_INPUT_TEMPLATES: tuple[str, ...] = (
+    "哈哈，这串字符我实在没看懂，是暗号吗？我这边只懂《王者荣耀》——你问个玩法、英雄或者对局问题，我都能接上。",
+    "这条我没看明白诶。咱们还是聊游戏吧：红BUFF有什么用、打野前期该干嘛、补刀是什么意思，问我这些都行。",
+    "没看懂这条～我是王者荣耀的训练向导，你随便问个玩法问题，比如「暴君多久刷新」「辅助该做什么」，我就开始讲。",
+)
+
+
+def unclear_input_answer(text: str) -> str:
+    """对"没看懂"的输入给出拟人化回应（确定性选取版式）。"""
+    import zlib
+
+    seed = zlib.crc32((text or "").encode("utf-8")) if text else 0
+    return UNCLEAR_INPUT_TEMPLATES[seed % len(UNCLEAR_INPUT_TEMPLATES)]
 
 
 def out_of_scope_answer(reason: str | None) -> str:

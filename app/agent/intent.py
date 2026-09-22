@@ -17,9 +17,12 @@ from dataclasses import dataclass, field
 from typing import Callable, Iterable
 
 from app.agent.normalize import (
+    detect_anaphora,
     detect_injection,
     extract_conditions,
     has_topic_term,
+    is_meaningless_input,
+    is_topic_followup,
     normalize,
 )
 from app.agent.synonyms import (
@@ -44,6 +47,9 @@ INTENTS = (INTENT_KNOWLEDGE, INTENT_SITUATIONAL, INTENT_CHITCHAT, INTENT_OUT_OF_
 ROUTE_NEED_MORE_INFO = "need_more_info"
 ROUTE_KB_MISS = "kb_miss"
 ROUTE_KB_GAP = "kb_gap"
+# 没听懂玩家在说什么（纯数字 / 纯符号 / 未知字母串）：承认没看懂并拟人化引导，
+# 既不能当成"越界请求"，也不该消耗一次模型调用。
+ROUTE_UNCLEAR_INPUT = "unclear_input"
 
 # 多意图优先级（分数相同时按此顺序裁决）
 PRIORITY = [INTENT_OUT_OF_SCOPE, INTENT_SITUATIONAL, INTENT_KNOWLEDGE, INTENT_CHITCHAT]
@@ -262,6 +268,21 @@ def classify(
     conditions = extract_conditions(norm_text)
     oos_reason = (matched.get("oos_reason") or [None])[0]
 
+    # 短路 0：完全没有可理解内容的输入（纯数字 / 纯符号 / 未知字母串）。
+    # 放在最前面，因为它既不该被当成"越界请求"，也不该消耗一次模型调用——
+    # 实测「123456」会走 LLM 兜底、花掉 1.3 秒、被判成 out_of_scope，
+    # 最后回一句冷冰冰的"这个请求超出我的能力范围了"。
+    if is_meaningless_input(text):
+        return IntentResult(
+            intent=INTENT_CHITCHAT,
+            scores=scores,
+            matched={**matched, "unclear_input": ["没有可识别的内容"]},
+            source="rule",
+            route_state=ROUTE_UNCLEAR_INPUT,
+            conditions=conditions,
+            injection=injection,
+        )
+
     # 安全网 1：注入式指令且完全不含游戏主题词 → 属于"不支持的请求"，
     # 直接归类为能力范围外，不交给模型自由发挥。
     if injection and not has_topic_term(norm_text) and not oos_reason:
@@ -312,6 +333,15 @@ def classify(
     already_asked_conditions = False
     if intent == INTENT_KNOWLEDGE:
         gap_reason = is_kb_gap_question(text)
+        # 继承上一轮的覆盖缺口：连续追问英雄时（"孙悟空是什么" → "那伽罗呢"），
+        # 第二个英雄可能不在词表里，若只靠词表判定就会降级成"未收录"直接拒答，
+        # 而玩家问的明明是同一类问题。
+        if (
+            not gap_reason
+            and prev_route_state == ROUTE_KB_GAP
+            and (detect_anaphora(text) or is_topic_followup(text))
+        ):
+            gap_reason = "inherited_hero_question"
         if gap_reason:
             route_state = ROUTE_KB_GAP
             matched["kb_gap_reason"] = [gap_reason]

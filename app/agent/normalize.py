@@ -14,8 +14,11 @@ from app.agent.synonyms import (
     INJECTION_PATTERNS,
     PHASE_HINTS,
     POSITION_HINTS,
+    QUESTION_PATTERNS,
+    SYNONYM_GROUPS,
     SYNONYM_LOOKUP,
     TOPIC_TERMS,
+    canonical_hero,
 )
 
 _WS_RE = re.compile(r"\s+")
@@ -81,6 +84,26 @@ def detect_anaphora(text: str) -> bool:
     return any(m in t for m in ANAPHORA_MARKERS)
 
 
+# "那 XX 呢 / XX 呢"：把上一轮的话题换个对象再问一遍。
+# 这类句子既没有疑问词也没有主题词（"那赵铁柱呢"），规则层完全没有信号，
+# 但它明确是"同一类问题换个对象"，应当继承上一轮的意图与路由状态。
+_TOPIC_FOLLOWUP_RE = re.compile(r"^那?.{1,8}呢$")
+
+
+def is_topic_followup(text: str) -> bool:
+    """是否是"换个对象再问一遍"式的追问。
+
+    刻意排除带疑问词的句子（"暴君什么时候打呢"）：那种句子有明确的问题结构，
+    应当独立判定，不能因为结尾带个"呢"就当成追问。
+    """
+    t = normalize(text)
+    if not t or len(t) > 12 or not t.endswith("呢"):
+        return False
+    if any(word in t for word in QUESTION_PATTERNS):
+        return False
+    return bool(_TOPIC_FOLLOWUP_RE.match(t))
+
+
 def extract_conditions(text: str) -> dict[str, list[str]]:
     """提取情境条件：位置 / 阶段 / 英雄。
 
@@ -91,7 +114,9 @@ def extract_conditions(text: str) -> dict[str, list[str]]:
     return {
         "position": sorted({w for w in POSITION_HINTS if normalize(w) in t}),
         "phase": sorted({w for w in PHASE_HINTS if normalize(w) in t}),
-        "hero": sorted({w for w in HERO_HINTS if normalize(w) in t}),
+        # 错别字还原成规范写法后再上报：下游（提示词、追问复述）应当说「安琪拉」，
+        # 而不是把玩家的错写「安其拉」再念回去。
+        "hero": sorted({canonical_hero(w) for w in HERO_HINTS if normalize(w) in t}),
     }
 
 
@@ -120,13 +145,34 @@ _NO_COVERAGE_RE = re.compile(
 
 
 def has_meaningful_text(raw_text: str) -> bool:
-    """消息里是否有实质内容（汉字或字母数字）。
-
-    纯符号输入（"。。。。"、"？？？"）在归一化后会变成空串，此时所有规则都没有信号，
-    只能靠上下文继承硬猜——实测会把一串句号当成上一轮问题的延续去作答。
-    这类输入应被明确拦下，而不是让模型猜。
-    """
+    """消息里是否有任何字符（用于区分"完全空"与"有内容"）。"""
     return bool(re.search(r"[\u4e00-\u9fff0-9a-zA-Z]", raw_text or ""))
+
+
+# 已知的游戏拉丁术语（buff / adc / gank / combo …）：出现这些才算"有内容"，
+# 否则一串字母和纯数字一样无法理解。从同义词表里收集，避免另维护一份。
+_LATIN_HINTS: set[str] = {
+    t for group in SYNONYM_GROUPS for t in group if t.isascii() and t.isalpha() and len(t) >= 2
+}
+_LATIN_HINTS |= {k for k in GAME_ALIASES if k.isascii()}
+_CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+
+
+def is_meaningless_input(raw_text: str) -> bool:
+    """输入是否没有任何可理解的内容（纯数字、纯符号、未知字母串）。
+
+    这类输入**既不该当成"越界请求"**（越界是"要求了未接入的能力"），
+    也不该交给模型兜底分类。实测「123456」会因此花掉 1.3 秒、被判成
+    `out_of_scope`，然后回一句冷冰冰的"这个请求超出我的能力范围了"——
+    判断是错的，语气也不像人。正确做法是：承认"没看懂"，并拟人化地引导回可答范围。
+    """
+    raw = raw_text or ""
+    if _CJK_RE.search(raw):
+        return False
+    t = normalize(raw)
+    if not t:
+        return True
+    return not any(hint in t for hint in _LATIN_HINTS)
 _SENTENCE_END_RE = re.compile(r"[。！？!?\n]")
 _FIRST_SENTENCE_LIMIT = 60
 

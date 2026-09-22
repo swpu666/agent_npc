@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 Role = Literal["user", "assistant"]
 IntentName = Literal["knowledge_qa", "situational_advice", "chitchat", "out_of_scope"]
-RouteState = Literal["need_more_info", "kb_miss", "kb_gap"]
+RouteState = Literal["need_more_info", "kb_miss", "kb_gap", "unclear_input"]
 
 
 class ChatMessage(BaseModel):
@@ -62,6 +62,9 @@ class GuardInfo(BaseModel):
 
 class ChatResponse(BaseModel):
     request_id: str
+    # 长期记忆状态摘要（提问次数、关注主题、本次是否注入了画像）。
+    # 暴露出来是为了让"系统记住了什么"对玩家可见，而不是后台悄悄累积。
+    memory: dict | None = None
     answer: str
     intent: IntentName
     route_state: RouteState | None = None

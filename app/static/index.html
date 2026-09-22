@@ -22,6 +22,8 @@
           <span class="badge badge-muted" id="badge-model">模型加载中…</span>
           <span class="badge badge-warn hidden" id="badge-mock" title="Mock 模式不会调用真实模型，结果仅供链路验证">MOCK 模式</span>
         </div>
+        <button class="btn btn-ghost" id="btn-memory" type="button">玩家画像</button>
+        <button class="btn btn-ghost" id="btn-reports" type="button">评测报告</button>
         <button class="btn btn-ghost" id="btn-logs" type="button">使用记录</button>
         <button class="btn btn-ghost" id="btn-clear" type="button">清空对话</button>
       </div>
@@ -78,6 +80,22 @@
         上线前须脱敏、告知用户并设置保留期；可用 <code>LOG_ENABLED=0</code> 关闭。
       </p>
       <div class="drawer-body" id="drawer-body"></div>
+    </div>
+  </div>
+
+  <div class="drawer" id="drawer-memory" hidden>
+    <div class="drawer-panel" role="dialog" aria-label="玩家画像">
+      <div class="drawer-head">
+        <strong>玩家画像</strong>
+        <span class="drawer-meta" id="memory-meta"></span>
+        <button class="btn btn-small" id="btn-memory-clear" type="button">清除记忆</button>
+        <button class="btn btn-small" id="btn-memory-close" type="button">关闭</button>
+      </div>
+      <p class="drawer-note">
+        画像只统计「你问了什么」，<b>不推断「你喜欢玩什么」</b>；按会话隔离、
+        仅保存在本机，随时可清除。含你问过的原始问题文本。
+      </p>
+      <div class="drawer-body" id="memory-body"></div>
     </div>
   </div>
 

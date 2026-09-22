@@ -7,6 +7,11 @@
     python -m eval.run_eval --only T06,T09,T13
     python -m eval.run_eval --tag smoke
 
+产出三份报告（同一份数据，三种用途）：
+    eval/reports/report_<tag>_<时间戳>.json   # 机器可读，供二次分析
+    eval/reports/report_<tag>_<时间戳>.md     # 便于阅读，随仓库提交
+    eval/reports/report_<tag>_<时间戳>.html   # 自包含单文件，供逐条抽查；也可由 GET /report 在网页查看
+
 说明：
 - "离线"指基于固定数据集批量评测，不依赖真实在线玩家流量；允许调用在线模型接口。
 - 被测 Agent 只接收 turns（玩家消息），测试集中的 expect_* / must_cover / must_not
@@ -30,6 +35,7 @@ from app.agent.pipeline import Agent  # noqa: E402
 from app.config import EVAL_DIR, KNOWLEDGE_FILE, Settings, get_settings  # noqa: E402
 from eval.judge import JudgeOutcome, llm_judge, rule_check  # noqa: E402
 from eval.metrics import summarize  # noqa: E402
+from eval.report_html import render_report_html  # noqa: E402
 
 DEFAULT_DATASET = EVAL_DIR / "dataset" / "testset.jsonl"
 DEFAULT_OUT = EVAL_DIR / "reports"
@@ -210,7 +216,14 @@ def run_case(case: dict, runner, kb_ids: set[str], judge_llm: LLMClient | None, 
 
 
 # --------------------------------------------------------------------- 报告
-def write_reports(records: list[dict], summary: dict, config: dict, out_dir: Path, tag: str) -> tuple[Path, Path]:
+def write_reports(
+    records: list[dict], summary: dict, config: dict, out_dir: Path, tag: str
+) -> tuple[Path, Path, Path]:
+    """同时写出 JSON（机器可读）、Markdown（便于阅读）与 HTML（便于逐条抽查）。
+
+    HTML 是自包含单文件（内联 CSS/JS），评审不用装环境就能打开，
+    也可以由服务端 `GET /report` 直接在网页里查看。
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     base = out_dir / f"report_{tag}_{stamp}"
@@ -221,7 +234,12 @@ def write_reports(records: list[dict], summary: dict, config: dict, out_dir: Pat
 
     md_path = base.with_suffix(".md")
     md_path.write_text(render_markdown(records, summary, config), encoding="utf-8")
-    return json_path, md_path
+
+    html_path = base.with_suffix(".html")
+    html_path.write_text(
+        render_report_html(payload, title=f"离线评测报告 · report_{tag}_{stamp}"), encoding="utf-8"
+    )
+    return json_path, md_path, html_path
 
 
 def render_markdown(records: list[dict], summary: dict, config: dict) -> str:
@@ -383,7 +401,7 @@ def main() -> int:
         "retrieval_min_score": settings.retrieval_min_score,
         "retrieval_top_k": settings.retrieval_top_k,
     }
-    json_path, md_path = write_reports(records, summary, config, Path(args.out), tag)
+    json_path, md_path, html_path = write_reports(records, summary, config, Path(args.out), tag)
 
     print("-" * 78)
     for name, m in summary.get("metrics", {}).items():
@@ -402,6 +420,7 @@ def main() -> int:
     print("-" * 78)
     print(f"报告已写入：{json_path}")
     print(f"           {md_path}")
+    print(f"           {html_path}  ← 自包含单文件，可直接双击打开；也可访问 GET /report 查看")
     if settings.mock_llm:
         print("[MOCK] 该报告为 Mock 结果，仅验证链路，不可用于质量结论。")
     return 0

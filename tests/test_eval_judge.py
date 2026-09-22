@@ -96,6 +96,72 @@ def test_evidence_in_answer_accepts_ellipsis_spliced_quotes() -> None:
     assert evidence_in_answer(evidence, answer)
 
 
+def test_report_html_is_self_contained_and_renders_key_parts() -> None:
+    """报告 HTML 必须是自包含单文件（不依赖外部资源），评审才能离线打开。"""
+    from eval.report_html import render_report_html
+
+    payload = {
+        "config": {"run_at": "2026-09-22 18:00:00", "model": "deepseek-chat", "tag": "unit"},
+        "summary": {
+            "metrics": {
+                "意图准确率": {"value": 1.0, "numerator": 2, "denominator": 2},
+                "回答通过率": {"value": 0.5, "numerator": 1, "denominator": 2},
+            },
+            "latency_ms": {
+                "total": {"count": 2, "mean": 10, "p50": 10, "p90": 12, "max": 12},
+                "model_call_share": 0.5,
+            },
+        },
+        "records": [
+            {
+                "id": "T01",
+                "turns": ["红BUFF有什么用？"],
+                "intent": "knowledge_qa",
+                "passed": True,
+                "answer": "红BUFF让普攻附带伤害并减速。",
+                "citations": [{"id": "MAP-BUFF-001"}],
+                "timings": {"total_ms": 1200, "intent_ms": 0.2, "retrieval_ms": 0.3, "llm_ms": 1199},
+                "judge_points": [
+                    {"point": "说明作用", "covered": True, "evidence": "普攻附带伤害", "evidence_verified": True}
+                ],
+            },
+            {
+                "id": "T02",
+                "turns": ["巅峰赛积分怎么算？"],
+                "intent": "knowledge_qa",
+                "passed": False,
+                "answer": "知识库未收录。",
+                "fail_reason": "要点未覆盖",
+                "judge_points": [],
+            },
+        ],
+    }
+    out = render_report_html(payload, title="单测报告")
+    assert out.startswith("<!DOCTYPE html>")
+    assert "<style>" in out and "<script>" in out
+    assert "http://" not in out.replace("http://www.w3.org", ""), "不应引入外部资源"
+    assert "100.00%" in out and "50.00%" in out
+    assert "红BUFF让普攻附带伤害并减速。" in out
+    assert "要点未覆盖" in out
+    assert "普攻附带伤害" in out  # 评审证据要能一眼对照
+    assert "实际发起模型调用的案例占比：50%" in out
+
+
+def test_report_html_escapes_untrusted_content() -> None:
+    """回答内容会进 HTML，必须转义，避免脚本注入。"""
+    from eval.report_html import render_report_html
+
+    payload = {
+        "config": {},
+        "summary": {},
+        "records": [{"id": "T01", "turns": ["x"], "answer": "<img src=x onerror=alert(1)>", "passed": True}],
+    }
+    out = render_report_html(payload)
+    # html.escape 会同时转义 < > & " '
+    assert "&lt;img src=x onerror=alert(1)&gt;" in out
+    assert "<img src=x" not in out
+
+
 def test_evidence_in_answer_rejects_fabricated_evidence() -> None:
     answer = "补刀可以拿到更多金币。"
     # 评审把要点原文抄回来当证据，属于编造证据

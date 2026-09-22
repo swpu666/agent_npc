@@ -77,12 +77,28 @@ def test_chat_rejects_too_long_input(client: TestClient) -> None:
     assert resp.json()["detail"]["error"] == "too_long"
 
 
-@pytest.mark.parametrize("message", ["。。。。", "？？？", "！！！", "   ...   "])
-def test_chat_rejects_meaningless_input(client: TestClient, message: str) -> None:
-    """纯符号消息归一化后为空串，规则层毫无信号；不拦下就会被上下文继承硬猜。"""
+@pytest.mark.parametrize("message", ["。。。。", "？？？", "123456", "asdfgh"])
+def test_chat_answers_meaningless_input_warmly(client: TestClient, message: str) -> None:
+    """无法理解的输入应当**正常回答**（承认没听懂 + 拟人化引导），而不是回 400。
+
+    它不是"请求格式错误"，而是一次正常的对话轮次：玩家发了东西、期待有回应。
+    早期版本会把它交给模型兜底分类，花掉 1.3 秒后判成"超出能力范围"，
+    回复一句冷冰冰的拒绝——判断是错的，语气也不像人。
+    """
     resp = client.post("/api/chat", json={"message": message})
-    assert resp.status_code == 400
-    assert resp.json()["detail"]["error"] == "unrecognized_input"
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["route_state"] == "unclear_input"
+    assert body["citations"] == []
+    assert body["timings"]["llm_ms"] == 0, "走模板回答，不该调用模型"
+    assert any(k in body["answer"] for k in ("没看懂", "没看明白", "暗号")), body["answer"]
+
+
+def test_meaningless_input_answer_is_deterministic(client: TestClient) -> None:
+    """版式轮换必须按内容确定：真随机会让同一个输入每次回答都不同，评测失去可比性。"""
+    first = client.post("/api/chat", json={"message": "123456"}).json()["answer"]
+    second = client.post("/api/chat", json={"message": "123456"}).json()["answer"]
+    assert first == second
 
 
 def test_chat_ignores_invalid_history_items(client: TestClient) -> None:
@@ -102,6 +118,36 @@ def test_index_page_is_served(client: TestClient) -> None:
 def test_static_assets_are_served(client: TestClient) -> None:
     assert client.get("/static/app.js").status_code == 200
     assert client.get("/static/style.css").status_code == 200
+
+
+def test_reports_endpoints_and_path_traversal(client: TestClient) -> None:
+    """报告名来自 URL，属于不可信输入：必须挡住目录穿越。"""
+    assert client.get("/api/reports").status_code == 200
+    for bad in ["..%2F..%2Fetc%2Fpasswd", "..", "a/b"]:
+        resp = client.get(f"/api/reports/{bad}/html")
+        assert resp.status_code in (404, 400), bad
+
+
+def test_report_page_renders_or_guides(client: TestClient) -> None:
+    """/report 要么给出报告，要么给出"怎么生成"的指引——不能是 404。"""
+    resp = client.get("/report")
+    assert resp.status_code == 200
+    body = resp.text
+    assert ("离线评测报告" in body) or ("还没有评测报告" in body)
+
+
+def test_memory_endpoints(client: TestClient) -> None:
+    sid = "test-session-1"
+    assert client.get(f"/api/memory/{sid}").status_code == 200
+    assert client.delete(f"/api/memory/{sid}").status_code == 200
+    assert client.get("/api/knowledge-gaps").status_code == 200
+
+
+def test_memory_endpoint_rejects_bad_session_id(client: TestClient) -> None:
+    resp = client.get("/api/memory/..%2F..%2Fsecret")
+    assert resp.status_code in (200, 404, 422)  # 不返回他人数据即可
+    if resp.status_code == 200:
+        assert resp.json().get("profile") is None
 
 
 def test_hidden_attribute_is_not_overridden_by_layout_css(client: TestClient) -> None:

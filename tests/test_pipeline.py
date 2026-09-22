@@ -121,7 +121,7 @@ def test_kb_gap_answers_with_general_knowledge_but_no_sources(settings: Settings
     assert any("知识库覆盖不到" in c for c in system_msgs), "必须把覆盖缺口说明注入提示词"
     # 半相关条目仍作为背景传给模型，但不展示，且在 debug 里可核对
     assert result.debug["withheld_materials"] == ["ROLE-SUPPORT-001"]
-    assert any("未引用知识库来源" in n for n in result.guard["notes"])
+    assert any("不展示引用来源" in n for n in result.guard["notes"])
 
 
 def test_kb_gap_not_confused_with_kb_miss(settings: Settings) -> None:

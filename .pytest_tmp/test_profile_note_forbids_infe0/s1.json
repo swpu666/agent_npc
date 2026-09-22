@@ -1,0 +1,31 @@
+{
+  "session_id": "s1",
+  "turns": 4,
+  "intents": {
+    "knowledge_qa": 4
+  },
+  "topics": {
+    "地图机制": 4
+  },
+  "positions": {
+    "打野": 4
+  },
+  "heroes": {},
+  "route_states": {
+    "null": 4
+  },
+  "recent_questions": [
+    "问题0",
+    "问题1",
+    "问题2",
+    "问题3"
+  ],
+  "unresolved": [
+    "问题0",
+    "问题1",
+    "问题2",
+    "问题3"
+  ],
+  "first_seen": "2026-09-22T16:45:02+08:00",
+  "last_seen": "2026-09-22T16:45:02+08:00"
+}

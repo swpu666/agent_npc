@@ -12,6 +12,8 @@ KNOWLEDGE_FILE = BASE_DIR / "app" / "data" / "knowledge" / "kb_v1.json"
 KNOWLEDGE_META_FILE = BASE_DIR / "app" / "data" / "knowledge" / "kb_meta.json"
 STATIC_DIR = BASE_DIR / "app" / "static"
 EVAL_DIR = BASE_DIR / "eval"
+REPORTS_DIR = EVAL_DIR / "reports"
+DIALOGUES_DIR = EVAL_DIR / "dialogues" / "records"
 
 
 class Settings(BaseSettings):
@@ -47,6 +49,10 @@ class Settings(BaseSettings):
     log_dir: str = "logs"
     # 单条消息/回答落盘的最大字符数，超出截断（避免日志无限膨胀）
     log_max_chars: int = 2000
+
+    # ---------- 长期记忆（会话级画像，详见 app/memory.py 的隐私说明）----------
+    memory_enabled: bool = True
+    memory_dir: str = "app/data/memory"
 
     # ---------- 开关 ----------
     mock_llm: bool = False
