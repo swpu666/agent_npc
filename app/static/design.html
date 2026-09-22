@@ -193,13 +193,19 @@
 
     @media (max-width: 720px) {
       .topnav { flex-wrap: wrap; padding: 10px 14px }
-      .topnav .links { width: 100%; flex-wrap: nowrap; overflow-x: auto; gap: 2px; padding-bottom: 2px }
-      .topnav a { flex: none }
+      .topnav .links { width: 100%; flex-wrap: nowrap; overflow-x: auto; gap: 2px; padding-bottom: 2px; -webkit-overflow-scrolling: touch }
+      .topnav a { flex: none; min-height: 38px; display: inline-flex; align-items: center }
       .wrap { padding: 0 16px 72px }
       h1 { font-size: 26px }
       .lead { font-size: 14px }
       .hero { padding: 40px 0 24px }
       .flow .arrow { display: none }
+      .stat-strip { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)) }
+    }
+
+    @media (max-width: 380px) {
+      h1 { font-size: 22px }
+      .stat-strip { grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 8px }
     }
 
     @media (prefers-reduced-motion: reduce) {

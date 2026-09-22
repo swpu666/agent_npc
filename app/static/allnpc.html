@@ -31,6 +31,19 @@
   .a{white-space:pre-wrap;word-break:break-word;background:rgba(255,255,255,.03);border-radius:9px;padding:8px 10px;margin:5px 0}
   .sid{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--dim)}
   .empty{padding:26px;text-align:center;color:var(--dim)}
+  @media (max-width:640px){
+    .wrap{padding:16px 12px 48px}
+    h1{font-size:18px}
+    .cards{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+    .card{padding:10px 12px}
+    .card .v{font-size:18px}
+    .item{padding:10px 12px}
+    .toolbar{gap:6px}
+    button{padding:8px 14px;min-height:38px}
+    .sid{word-break:break-all}
+    .q{font-size:13px}
+    .a{font-size:13px}
+  }
 </style>
 </head>
 <body>

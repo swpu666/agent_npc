@@ -35,6 +35,7 @@ body {
 
 .app {
   height: 100%;
+  height: 100dvh; /* 移动端地址栏收展时正确计算视口高度 */
   max-width: 980px;
   margin: 0 auto;
   padding: 18px 20px 16px;
@@ -389,10 +390,33 @@ body {
 .counter { font-size: 11px; color: var(--text-dim); }
 .counter.over { color: var(--danger); }
 
+/* ---------- 响应式：手机端 ---------- */
 @media (max-width: 640px) {
-  .app { padding: 10px; }
-  .topbar { flex-direction: column; align-items: stretch; }
-  .topbar-right { justify-content: space-between; }
+  .app { padding: 10px; gap: 10px; }
+  .topbar { flex-direction: column; align-items: stretch; padding: 12px 14px; gap: 10px; }
+  .topbar-right { flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
+  .badges { width: 100%; justify-content: flex-start; }
+  .btn { padding: 8px 12px; font-size: 12.5px; min-height: 36px; }
   .bubble-wrap { max-width: 100%; }
+  .msg { gap: 8px; }
+  .msg-avatar { width: 28px; height: 28px; font-size: 12px; border-radius: 9px; }
+  .bubble { font-size: 13.5px; padding: 10px 12px; }
+  .chat-inner { padding: 14px; }
+  .empty-title { font-size: 18px; }
+  .empty-desc { font-size: 13px; }
+  .composer { gap: 8px; padding: 10px 12px; }
+  .composer-side { gap: 8px; }
+  #input { font-size: 16px; } /* 避免 iOS 聚焦自动放大 */
   .counter { display: none; }
+  .drawer-panel { width: 100%; padding: 14px; }
+  .notice { flex-direction: column; align-items: stretch; gap: 8px; }
+  .notice .btn { align-self: flex-end; }
+}
+
+@media (max-width: 380px) {
+  .brand-text h1 { font-size: 15px; }
+  .subtitle { font-size: 11px; }
+  .avatar { width: 38px; height: 38px; font-size: 18px; }
+  .btn { padding: 7px 10px; font-size: 12px; }
+  .chip { padding: 7px 11px; font-size: 12px; }
 }
