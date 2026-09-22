@@ -1,0 +1,17 @@
+INFO:     Started server process [832695]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:45012 - "GET /homework HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45026 - "GET /design HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45040 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45044 - "GET /allNpc/ HTTP/1.1" 200 OK
+INFO:     110.40.140.11:0 - "GET /homework HTTP/1.1" 200 OK
+INFO:     110.40.140.11:0 - "GET /design HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51444 - "GET /homework HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51454 - "GET /design HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51460 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51468 - "GET /allNpc/ HTTP/1.1" 200 OK
+INFO:     110.40.140.11:0 - "GET /homework HTTP/1.1" 200 OK
+INFO:     110.40.140.11:0 - "GET /design HTTP/1.1" 200 OK
+INFO:     110.40.140.11:0 - "GET / HTTP/1.1" 200 OK

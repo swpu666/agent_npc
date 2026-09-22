@@ -321,7 +321,7 @@ class Agent:
             for d in relaxed
             if d.score < min_score and any(r.startswith(field_prefixes) for r in d.match_reason)
         ]
-        return [], near_titles, False
+        return [], near_titles, used_history
 
 
 _agent: Agent | None = None
