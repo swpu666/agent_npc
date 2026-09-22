@@ -143,3 +143,27 @@ def test_kb_covers_at_least_three_topics() -> None:
     topics = {e["topic"] for e in kb_data["entries"]}
     assert len(topics) >= 3
     assert len(kb_data["entries"]) >= 12
+
+
+def test_every_source_is_verified_and_labelled() -> None:
+    """回归：早期版本 31 条全部指向同一个 404 链接，而且没有来源强度标注。
+    现在每条都必须写明校验日期与强度，topic 档还必须说明与正文的差距。"""
+    from app.tools.kb_lint import load_kb
+
+    entries = load_kb(KNOWLEDGE_FILE)["entries"]
+    for e in entries:
+        src = e["source"]
+        assert src["url"].startswith("http"), f"{e['id']} 来源不是 http(s) 地址"
+        assert src.get("verified_at"), f"{e['id']} 缺少链接校验日期"
+        assert src.get("support") in ("direct", "topic"), f"{e['id']} 来源强度非法"
+        if src["support"] == "topic":
+            assert src.get("support_note"), f"{e['id']} 标注为主题来源却没有说明差距"
+
+
+def test_kb_lint_rejects_invalid_support_level() -> None:
+    from app.tools.kb_lint import lint, load_kb
+
+    kb_data = load_kb(KNOWLEDGE_FILE)
+    kb_data["entries"][0]["source"]["support"] = "bogus"
+    errors, _warnings = lint(kb_data)
+    assert any("source.support 非法" in e for e in errors)

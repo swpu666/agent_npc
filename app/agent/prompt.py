@@ -12,6 +12,7 @@ from app.agent.intent import (
     INTENT_CHITCHAT,
     INTENT_KNOWLEDGE,
     INTENT_SITUATIONAL,
+    ROUTE_KB_GAP,
     ROUTE_KB_MISS,
     ROUTE_NEED_MORE_INFO,
 )
@@ -50,11 +51,60 @@ KNOWLEDGE_INSTRUCTION = """请依据【知识材料】回答玩家的问题。�
 2. 只陈述材料中支持的内容，材料没写的不要补充；
 3. 如果材料只覆盖了问题的一部分，明确说出哪部分没有覆盖。"""
 
+KB_GAP_INSTRUCTION = """玩家问的是**知识库覆盖不到**的内容（具体英雄、英雄推荐与强度、使用率排行这类动态数据）。
+知识库里只有通用规则，没有以英雄为主体的条目。请按下面三条回答：
+
+1. **第一句必须先明确声明**：这部分不在我的知识库里，下面是通用理解，仅供参考。
+   例如"我知识库里没有收录英雄推荐这类数据，下面是我的通用理解，仅供参考"。
+2. 然后给出你有较高把握的通用内容，尽量具体、有用。可以结合【知识材料】里的规则
+   （例如位置职责）来说明"挑选时该看哪些能力"，但不要假装材料里有英雄数据。
+3. **不确定的就直说不确定**：具体数值、技能细节、版本强度排序、胜率使用率数字一律不要编，
+   改为提示"以客户端内说明为准"。宁可少说，也不要说错。
+
+不要在正文里写来源或链接——本次回答没有任何可引用的知识库来源。"""
+
 SITUATIONAL_INSTRUCTION = """玩家在描述自己的对局处境，请结合他给出的条件给建议。要求：
 1. 先给出 1-2 条最该做的事，按优先级排列，并说明为什么；
 2. 建议要具体到这个位置/阶段，不要说"多支援、多发育"这种空话；
-3. 只谈你有把握的机制。没有【知识材料】时，就只讲通用思路（换资源、保发育、呼叫队友），
+3. **必须用上【玩家已经提供的信息】里列出的条件**（例如已知英雄，就按这个英雄的特点谈，
+   不要说"我只能给通用思路"），也不要把已经提供过的信息再问一遍；
+4. 只谈你有把握的机制。没有【知识材料】时，就只讲通用思路（换资源、保发育、呼叫队友），
    不要写出具体机制名词——尤其不要写本游戏里并不存在的道具或机制。"""
+
+_CONDITION_LABELS = {"position": "位置", "phase": "阶段", "hero": "英雄"}
+
+
+def render_known_conditions(
+    conditions: dict[str, list[str]] | None,
+    missing: list[str] | None,
+    already_asked: bool,
+) -> str:
+    """把"路由层已知的条件"显式告诉模型。
+
+    路由层知道哪些条件玩家已经答过、哪些已经追问过，模型不知道——如果不告诉它，
+    它会自己再问一遍（实测 T16 就是这样失败的：路由已经不问，回答结尾却又追问了位置）。
+    """
+    known = {k: v for k, v in (conditions or {}).items() if v}
+    if not known and not already_asked:
+        return ""
+    lines: list[str] = []
+    if known:
+        lines.append(
+            "【玩家已经提供的信息】"
+            + "；".join(f"{_CONDITION_LABELS[k]}：{'、'.join(v)}" for k, v in known.items())
+        )
+    if already_asked:
+        lines.append(
+            "【注意】「位置 / 阶段 / 英雄」这几个条件在之前的对话里已经追问过一轮了，"
+            "不要再把它们原样问一遍。请直接基于已知信息给出可执行建议。"
+        )
+        still_unknown = [_CONDITION_LABELS[k] for k in (missing or []) if k in _CONDITION_LABELS]
+        if still_unknown:
+            lines.append(
+                "仍然未知的是：" + "、".join(still_unknown)
+                + "。如果它确实影响判断，最多用一句话说明，其余内容照常给方案。"
+            )
+    return "\n".join(lines)
 
 CHITCHAT_INSTRUCTION = """玩家在跟你闲聊或打招呼。简短自然地回应一两句，保持训练向导的身份。不要输出与游戏无关的长篇内容。"""
 
@@ -99,6 +149,9 @@ def build_messages(
     history_max_turns: int = 6,
     history_max_chars: int = 4000,
     injection_suspected: bool = False,
+    conditions: dict[str, list[str]] | None = None,
+    missing_conditions: list[str] | None = None,
+    already_asked_conditions: bool = False,
 ) -> list[dict]:
     """组装最终发送给模型的 messages。"""
     system_content = SYSTEM_PROMPT
@@ -114,10 +167,17 @@ def build_messages(
     if docs:
         messages.append({"role": "system", "content": render_materials(docs)})
 
+    if intent == INTENT_SITUATIONAL:
+        conditions_note = render_known_conditions(conditions, missing_conditions, already_asked_conditions)
+        if conditions_note:
+            messages.append({"role": "system", "content": conditions_note})
+
     messages.extend(trim_history(history, history_max_turns, history_max_chars))
 
     if route_state == ROUTE_NEED_MORE_INFO:
         pass  # 该状态不走模型，由模板回答，不会进入本函数
+    elif route_state == ROUTE_KB_GAP:
+        messages.append({"role": "system", "content": KB_GAP_INSTRUCTION})
     elif intent == INTENT_KNOWLEDGE:
         messages.append({"role": "system", "content": KNOWLEDGE_INSTRUCTION})
     elif intent == INTENT_SITUATIONAL:

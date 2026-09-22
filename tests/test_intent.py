@@ -9,6 +9,7 @@ from app.agent.intent import (
     INTENT_KNOWLEDGE,
     INTENT_OUT_OF_SCOPE,
     INTENT_SITUATIONAL,
+    ROUTE_KB_GAP,
     ROUTE_NEED_MORE_INFO,
     classify,
 )
@@ -104,6 +105,46 @@ def test_chitchat_not_mistaken_for_account_query(text: str) -> None:
 
 
 # --------------------------------------------------------------- 路由状态
+@pytest.mark.parametrize(
+    "text",
+    [
+        "给我介绍几个辅助的使用率高的英雄",
+        "辅助有哪些英雄推荐",
+        "推荐几个打野英雄",
+        "现在版本哪些英雄强势？",
+        "蔡文姬怎么玩",          # 英雄实体
+        "兰陵王的出装推荐",       # 英雄实体 + 推荐
+    ],
+)
+def test_kb_gap_when_question_is_hero_level(text: str) -> None:
+    """知识库没有英雄维度：这类问题走 kb_gap（可用通用理解回答，但不展示来源）。"""
+    assert classify(text).route_state == ROUTE_KB_GAP
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "打野的职责是什么？",
+        "补刀是什么意思？",
+        "防御塔需要按什么顺序推？",
+        "野区的红BUFF有什么作用？",
+        "红BUFF多久刷新一次？",
+        # 具体规则与数值：模型记忆容易过时，仍走 kb_miss 如实说不知道，不算覆盖缺口
+        "巅峰赛的积分是怎么计算的？",
+        # 有第一人称但问的是通用规则，不应被判成缺口
+        "我玩打野，前期该做什么？",
+    ],
+)
+def test_not_kb_gap_for_general_rules(text: str) -> None:
+    assert classify(text).route_state != ROUTE_KB_GAP
+
+
+def test_kb_gap_only_applies_to_knowledge_qa() -> None:
+    """闲聊与情境建议不该被扣上"覆盖缺口"的帽子。"""
+    assert classify("你好呀，陪我聊聊").route_state is None
+    assert classify("我们队现在劣势，该怎么翻盘？").route_state != ROUTE_KB_GAP
+
+
 def test_need_more_info_when_conditions_missing() -> None:
     result = classify("我这局该怎么打才好？")
     assert result.intent == INTENT_SITUATIONAL
@@ -130,6 +171,57 @@ def test_elliptical_followup_inherits_previous_intent() -> None:
 def test_elliptical_followup_falls_back_without_history() -> None:
     # 没有继承来源时，兜底为 knowledge_qa（风险最低的默认行为）
     assert classify("那这个呢？").intent == INTENT_KNOWLEDGE
+
+
+# --------------------------------------------------------------- 补充条件的多轮对话
+NEED_MORE_INFO_REPLY = {"role": "assistant", "content": "想给你更靠谱的建议，得先知道几个条件：\n\n1. 你这局打的是哪个位置？…"}
+
+
+def test_condition_reply_is_situational_when_context_exists() -> None:
+    """「我玩的是悟空」这类补条件短句，有上下文时直接按情境建议处理，不走模型兜底。"""
+    history = [{"role": "user", "content": "我这局劣势了该怎么办？"}, NEED_MORE_INFO_REPLY]
+    result = classify("我玩的是悟空", history=history)
+    assert result.intent == INTENT_SITUATIONAL
+    assert result.source == "rule"
+    assert result.conditions["hero"] == ["悟空"]
+
+
+def test_condition_reply_without_context_is_not_guessed() -> None:
+    """没有上下文时，一句孤立的"我玩的是悟空"没有归属，不擅自定性。"""
+    result = classify("我玩的是悟空")
+    assert result.source in ("llm", "fallback")
+
+
+def test_condition_reply_does_not_steal_real_questions() -> None:
+    """带疑问词的正常提问不能被"补条件"规则抢走。"""
+    history = [{"role": "user", "content": "我这局劣势了该怎么办？"}, NEED_MORE_INFO_REPLY]
+    assert classify("我玩打野，前期该做什么？", history=history).intent == INTENT_KNOWLEDGE
+
+
+def test_need_more_info_is_asked_only_once() -> None:
+    """上一轮已经追问过，本轮不再机械重复同一组问题。"""
+    history = [{"role": "user", "content": "我这局劣势了该怎么办？"}, NEED_MORE_INFO_REPLY]
+    result = classify("对面领先1000个人头", history=history)
+    assert result.intent == INTENT_SITUATIONAL
+    assert result.route_state is None
+    assert result.missing_conditions  # 仍然照常记录缺什么，只是不再拦人
+
+
+def test_need_more_info_reports_missing_conditions() -> None:
+    result = classify("我这局该怎么打才好？")
+    assert result.route_state == ROUTE_NEED_MORE_INFO
+    assert set(result.missing_conditions) == {"position", "phase", "hero"}
+
+
+def test_prev_route_state_inherits_situation_without_model() -> None:
+    """规则零信号但上一轮在追问条件时，直接继承情境建议，不调用模型。"""
+
+    def stub(text: str, history) -> str:  # pragma: no cover
+        raise AssertionError("上一轮刚追问过条件，不该再花一次模型调用")
+
+    result = classify("嗯嗯", prev_route_state=ROUTE_NEED_MORE_INFO, llm_classifier=stub)
+    assert result.intent == INTENT_SITUATIONAL
+    assert result.source == "inherit"
 
 
 # --------------------------------------------------------------- 模型兜底

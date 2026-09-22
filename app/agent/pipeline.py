@@ -18,13 +18,14 @@ from app.agent.intent import (
     INTENT_KNOWLEDGE,
     INTENT_OUT_OF_SCOPE,
     INTENT_SITUATIONAL,
+    ROUTE_KB_GAP,
     ROUTE_KB_MISS,
     ROUTE_NEED_MORE_INFO,
     IntentResult,
     classify,
 )
 from app.agent.llm import LLMClient, LLMError
-from app.agent.normalize import detect_anaphora, extract_urls, is_elliptical
+from app.agent.normalize import detect_anaphora, extract_urls, is_no_coverage_leading
 from app.agent.retrieval import (
     KnowledgeBase,
     RetrievedDoc,
@@ -68,6 +69,8 @@ def _citation(doc: RetrievedDoc) -> dict:
         "version": doc.version,
         "score": round(doc.score, 3),
         "topic": doc.topic,
+        "support": doc.source_support,
+        "support_note": doc.source_support_note,
     }
 
 
@@ -96,16 +99,13 @@ class Agent:
 
         # [1] 意图路由（本地规则，通常 < 1ms）
         t0 = time.perf_counter()
-        prev_intent = None
-        if history and is_elliptical(message):
-            prev_user = self._last_user_message(history)
-            if prev_user:
-                prev_intent = classify(prev_user, history=None).intent
+        prev_intent, prev_route_state = self._previous_turn_state(history)
         intent_result: IntentResult = classify(
             message,
             history=history,
             llm_classifier=lambda text, hist: self.llm.classify_intent(text),
             inherit_intent=prev_intent,
+            prev_route_state=prev_route_state,
         )
         intent_ms = round((time.perf_counter() - t0) * 1000, 2)
 
@@ -128,7 +128,9 @@ class Agent:
             docs, near_titles, used_history = self._retrieve(message, history, intent_result)
         retrieval_ms = round((time.perf_counter() - t1) * 1000, 2)
 
-        if intent_result.intent == INTENT_KNOWLEDGE and not docs:
+        # kb_gap 的判定与检索无关（问题本身就落在知识库覆盖缺口上），
+        # 因此不能被"未命中"覆盖成 kb_miss：这里只在路由状态还是空的时候才置 kb_miss。
+        if intent_result.intent == INTENT_KNOWLEDGE and not docs and result.route_state is None:
             result.route_state = ROUTE_KB_MISS
 
         # [3] 生成：能确定回答的直接走模板，不需要模型
@@ -138,7 +140,7 @@ class Agent:
         elif result.route_state == ROUTE_KB_MISS:
             result.answer = templates.kb_miss_answer(near_titles)
         elif result.route_state == ROUTE_NEED_MORE_INFO:
-            result.answer = templates.need_more_info_answer()
+                result.answer = templates.need_more_info_answer(intent_result.missing_conditions)
         else:
             messages = prompt_mod.build_messages(
                 intent=intent_result.intent,
@@ -149,6 +151,9 @@ class Agent:
                 history_max_turns=self.settings.history_max_turns,
                 history_max_chars=self.settings.history_max_chars,
                 injection_suspected=intent_result.is_injection_suspected,
+                conditions=intent_result.conditions,
+                missing_conditions=intent_result.missing_conditions,
+                already_asked_conditions=intent_result.already_asked_conditions,
             )
             llm_result = self.llm.chat(messages)
             result.answer = llm_result.text
@@ -161,8 +166,22 @@ class Agent:
             result.guard["sanitized_urls"] = removed
             result.guard["notes"].append("回答中出现了非本次检索来源的链接，已剔除")
 
-        result.citations = [_citation(d) for d in docs]
         result.retrieved = docs
+        if result.route_state == ROUTE_KB_GAP:
+            # kb_gap：检索到的条目与问题核心诉求并不匹配，不展示任何来源。
+            # 早期版本会把这类"半相关"条目当来源展示，玩家会误以为它支撑了回答。
+            result.citations = []
+            result.guard["notes"].append("本条超出知识库覆盖范围，回答基于通用理解，未引用知识库来源")
+        else:
+            result.citations = [_citation(d) for d in docs]
+            # 兜底：万一还有漏网的"半相关命中"，只要模型开门见山就说没收录，
+            # 就统一按"覆盖不足"处理——既清空来源，也把路由状态标上。
+            # 只清来源不改状态会导致界面自相矛盾：标着"正常回答"却一个来源都没有。
+            if is_no_coverage_leading(result.answer):
+                result.citations = []
+                if result.route_state is None:
+                    result.route_state = ROUTE_KB_GAP
+                result.guard["notes"].append("回答自述该问题未收录，已按覆盖不足处理并清空来源")
 
         version_mismatch = [d for d in docs if d.version_factor < 1]
         if version_mismatch:
@@ -183,6 +202,9 @@ class Agent:
             "retrieval_used_history": used_history,
             "retrieved": [d.to_dict() for d in docs] if docs else [],
             "near_miss_titles": near_titles,
+            # kb_gap 时检索到的"半相关"条目仍作为背景传给模型，但不展示为来源；
+            # 放在 debug 里方便评审核对"到底检到了什么、为什么没展示"。
+            "withheld_materials": [d.id for d in docs] if result.route_state == ROUTE_KB_GAP else [],
         }
         return result
 
@@ -190,6 +212,23 @@ class Agent:
     @staticmethod
     def _last_user_message(history: list[dict] | None) -> str | None:
         return previous_user_message(history)
+
+    @staticmethod
+    def _previous_turn_state(history: list[dict] | None) -> tuple[str | None, str | None]:
+        """规则层复算上一轮用户消息的意图与路由状态（本地、0 次模型调用）。
+
+        上一轮的状态是理解本轮的关键：上一条刚问过"补充条件"，这一条几乎必然在回答条件。
+        复算只走规则（不传 llm_classifier），因此即使上一轮本身需要兜底，
+        这里也只得到一个确定性的近似值——用于上下文继承已经足够，不会引入额外延迟。
+        """
+        if not history:
+            return None, None
+        for idx in range(len(history) - 1, -1, -1):
+            item = history[idx]
+            if isinstance(item, dict) and item.get("role") == "user" and item.get("content"):
+                prev_result = classify(str(item["content"]), history=history[:idx])
+                return prev_result.intent, prev_result.route_state
+        return None, None
 
     def _retrieve(
         self,

@@ -22,9 +22,11 @@ KNOWLEDGE_FILE = BASE_DIR / "app" / "data" / "knowledge" / "kb_v1.json"
 KNOWLEDGE_META_FILE = BASE_DIR / "app" / "data" / "knowledge" / "kb_meta.json"
 
 REQUIRED_FIELDS = ["id", "topic", "subtopic", "fact_key", "title", "content", "version", "source", "confidence"]
-SOURCE_FIELDS = ["title", "url", "collected_at"]
+SOURCE_FIELDS = ["title", "url", "collected_at", "verified_at", "support"]
 TOPICS = ["对局目标", "地图机制", "位置职责", "基础操作", "资源与经济"]
 CONFIDENCE = ["high", "medium", "low"]
+# 来源强度：direct = 该页直接写明本条内容；topic = 覆盖该主题但非逐句对应
+SUPPORT_LEVELS = ["direct", "topic"]
 
 # 内容长度上限：与设计文档 §3.1「一条知识聚焦一个事实点」一致
 MAX_CONTENT_CHARS = 260
@@ -85,6 +87,14 @@ def lint(kb: dict) -> tuple[list[str], list[str]]:
         if url and not url.startswith("http"):
             errors.append(f"[{tag}] source.url 不是公开可访问的 http(s) 地址：{url}")
 
+        support = src.get("support")
+        if support not in SUPPORT_LEVELS:
+            errors.append(f"[{tag}] source.support 非法：{support}（允许：{'/'.join(SUPPORT_LEVELS)}）")
+        elif support == "topic" and not src.get("support_note"):
+            warnings.append(
+                f"[{tag}] source.support=topic 但没有 support_note，请写明该页与本条内容的差距，避免看起来像逐句来源"
+            )
+
         # 数值类内容必须标注版本，避免出现"看起来是硬规则其实随版本变化"的断言
         if NUMERIC_CLAIM_RE.search(content) and e.get("version") in (None, "", "全版本"):
             if e.get("confidence") == "high":
@@ -101,30 +111,41 @@ def lint(kb: dict) -> tuple[list[str], list[str]]:
     return errors, warnings
 
 
-def check_urls(entries: list[dict], timeout: float = 8.0) -> list[str]:
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+)
+
+
+def check_urls(entries: list[dict], timeout: float = 12.0) -> tuple[list[str], list[str]]:
+    """返回 (全部行的输出, 不可达链接对应的问题列表)。
+
+    不可达必须作为**错误**返回给调用方：早期版本只把结果打印成提示，
+    退出码仍然是 0，于是 31 条指向 404 的链接被"校验通过"放了过去。
+    """
     try:
         import httpx
     except ImportError:  # pragma: no cover
-        return ["未安装 httpx，跳过链接校验"]
+        return ["未安装 httpx，跳过链接校验（请 pip install httpx）"], ["无法校验来源链接：缺少 httpx"]
 
-    notes: list[str] = []
+    lines: list[str] = []
+    problems: list[str] = []
     seen: dict[str, bool] = {}
-    headers = {"User-Agent": "Mozilla/5.0 (kb-lint)"}
     for e in entries:
         url = str(e.get("source", {}).get("url", ""))
         if not url:
             continue
         if url not in seen:
             try:
-                resp = httpx.get(url, timeout=timeout, headers=headers, follow_redirects=True)
+                resp = httpx.get(url, timeout=timeout, headers={"User-Agent": USER_AGENT}, follow_redirects=True)
                 seen[url] = resp.status_code < 400
-                notes.append(f"{'OK ' if seen[url] else 'FAIL'} {resp.status_code} {url}")
+                lines.append(f"{'OK  ' if seen[url] else 'FAIL'} {resp.status_code} {url}")
             except Exception as exc:  # noqa: BLE001
                 seen[url] = False
-                notes.append(f"FAIL {type(exc).__name__} {url}")
+                lines.append(f"FAIL {type(exc).__name__} {url}")
         if not seen[url]:
-            notes.append(f"  → 被 {e.get('id')} 引用")
-    return notes
+            problems.append(f"来源链接不可达：{url}（被 {e.get('id')} 引用）")
+    return lines, problems
 
 
 def write_meta(kb: dict, path: Path) -> None:
@@ -135,8 +156,10 @@ def write_meta(kb: dict, path: Path) -> None:
         "entry_count": len(entries),
         "topic_distribution": dict(Counter(e["topic"] for e in entries)),
         "confidence_distribution": dict(Counter(e["confidence"] for e in entries)),
-        "linted_at": date.today().isoformat(),
+        "source_support_distribution": dict(Counter(e["source"]["support"] for e in entries)),
         "source_domains": sorted({str(e["source"]["url"]).split("/")[2] for e in entries}),
+        "source_verified_at": sorted({e["source"]["verified_at"] for e in entries}),
+        "linted_at": date.today().isoformat(),
     }
     path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -154,6 +177,7 @@ def main() -> int:
     print(f"知识库文件：{args.file}")
     print(f"条目数：{len(kb.get('entries', []))}")
     print(f"主题分布：{Counter(e['topic'] for e in kb.get('entries', []))}")
+    print(f"来源强度分布：{Counter(e.get('source', {}).get('support') for e in kb.get('entries', []))}")
 
     for w in warnings:
         print(f"[WARN] {w}")
@@ -162,11 +186,16 @@ def main() -> int:
 
     if args.check_urls:
         print("--- 来源链接可达性 ---")
-        for line in check_urls(kb.get("entries", [])):
-            print(line)
+        lines, problems = check_urls(kb.get("entries", []))
+        for line in lines:
+            print(f"  {line}")
+        # 链接不可达必须计入错误：否则会出现"打印了 FAIL，退出码仍是 0"的假通过
+        errors.extend(problems)
 
     if errors:
         print(f"\n结论：校验失败（{len(errors)} 个错误，{len(warnings)} 个警告）")
+        for e in errors:
+            print(f"[ERROR] {e}")
         return 1
 
     print(f"\n结论：校验通过（{len(warnings)} 个警告）")

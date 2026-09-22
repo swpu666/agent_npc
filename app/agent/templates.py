@@ -61,12 +61,22 @@ KB_MISS_WITH_SIMILAR = (
     "如果你问的其实是这些，我可以直接讲：\n{similar}"
 )
 
+# 追问模板的固定前缀。它既是写给玩家的开场白，也是**结构化标记**：
+# 意图层据此判断"已经追问过一次"，后续轮次不再机械重复同一组问题
+# （只用这一个前缀做判断，不去猜助手回答的语义）。
+NEED_MORE_INFO_PREFIX = "想给你更靠谱的建议，得先知道"
+
+_NEED_MORE_INFO_QUESTIONS: dict[str, str] = {
+    "position": "你这局打的是哪个位置？（对抗路、打野、中路、发育路或游走）",
+    "phase": "现在大概到哪个阶段了？（前期、中期还是后期）",
+    "hero": "用的哪个英雄？",
+}
+_CONDITION_ORDER = ("position", "phase", "hero")
+
 NEED_MORE_INFO_TEMPLATE = (
-    "想给你更靠谱的建议，得先知道几个条件：\n\n"
-    "1. 你这局打的是哪个位置？（对抗路、打野、中路、发育路或游走）\n"
-    "2. 现在大概到哪个阶段了？（前期、中期还是后期）\n"
-    "3. 用的哪个英雄？\n\n"
-    "把这几点告诉我，我再帮你看该怎么打。"
+    f"{NEED_MORE_INFO_PREFIX}几个条件：\n\n"
+    + "\n".join(f"{i}. {_NEED_MORE_INFO_QUESTIONS[k]}" for i, k in enumerate(_CONDITION_ORDER, 1))
+    + "\n\n把这几点告诉我，我再帮你看该怎么打。"
 )
 
 
@@ -81,5 +91,21 @@ def kb_miss_answer(similar_titles: list[str] | None = None) -> str:
     return KB_MISS_TEMPLATE
 
 
-def need_more_info_answer() -> str:
-    return NEED_MORE_INFO_TEMPLATE
+def need_more_info_answer(missing: list[str] | None = None) -> str:
+    """只追问**还缺**的条件。
+
+    早期版本每轮都把位置/阶段/英雄三连问原样抛出去，玩家已经说过的也会再问一遍。
+    missing 为空时退化为完整的三连问（例如完全没有上下文时）。
+    """
+    keys = [k for k in _CONDITION_ORDER if not missing or k in missing]
+    if not keys:
+        keys = list(_CONDITION_ORDER)
+    if len(keys) == len(_CONDITION_ORDER):
+        return NEED_MORE_INFO_TEMPLATE
+    lines = "\n".join(f"{i}. {_NEED_MORE_INFO_QUESTIONS[k]}" for i, k in enumerate(keys, 1))
+    return f"{NEED_MORE_INFO_PREFIX}这几件事：\n\n{lines}\n\n补上之后我再给你具体思路。"
+
+
+def is_need_more_info_reply(text: str) -> bool:
+    """这条助手回答是不是"追问补充条件"的模板（用于避免反复追问）。"""
+    return NEED_MORE_INFO_PREFIX in (text or "")

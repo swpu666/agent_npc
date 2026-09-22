@@ -1,20 +1,30 @@
 {
   "kb_version": "1.0",
   "game": "王者荣耀",
-  "entry_count": 31,
+  "entry_count": 33,
   "topic_distribution": {
     "对局目标": 5,
-    "地图机制": 9,
+    "地图机制": 11,
     "位置职责": 6,
     "基础操作": 6,
     "资源与经济": 5
   },
   "confidence_distribution": {
     "high": 28,
-    "medium": 3
+    "medium": 5
   },
-  "linted_at": "2026-09-22",
+  "source_support_distribution": {
+    "topic": 23,
+    "direct": 10
+  },
   "source_domains": [
-    "pvp.qq.com"
-  ]
+    "news.17173.com",
+    "pvp.qq.com",
+    "wap.gamersky.com",
+    "www.dvg.cn"
+  ],
+  "source_verified_at": [
+    "2026-09-22"
+  ],
+  "linted_at": "2026-09-22"
 }

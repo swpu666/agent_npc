@@ -24,6 +24,11 @@
   var badgeModel = document.getElementById("badge-model");
   var badgeMock = document.getElementById("badge-mock");
   var emptyStateHTML = emptyState ? emptyState.outerHTML : "";
+  var btnLogs = document.getElementById("btn-logs");
+  var drawer = document.getElementById("drawer");
+  var drawerBody = document.getElementById("drawer-body");
+  var drawerMeta = document.getElementById("drawer-meta");
+  var btnDrawerClose = document.getElementById("btn-drawer-close");
 
   var turns = [];        // 已完成的对话 [{role, content}]
   var busy = false;
@@ -37,7 +42,8 @@
   };
   var ROUTE_LABEL = {
     need_more_info: "需要补充条件",
-    kb_miss: "知识库未收录"
+    kb_miss: "知识库未收录",
+    kb_gap: "知识库未覆盖"
   };
 
   /* ------------------------------------------------------------ 启动 */
@@ -129,6 +135,15 @@
     ));
     wrap.appendChild(meta);
 
+    // 知识库覆盖不到的问题：明确告诉玩家这段是通用理解，且本次没有可引用的来源
+    if (payload.route_state === "kb_gap") {
+      wrap.appendChild(el(
+        "div", "gap-notice",
+        "本条问题超出知识库覆盖范围（知识库只收录通用规则，没有英雄与使用率数据）。" +
+        "以上为通用理解，仅供参考，本次未引用任何知识库来源。"
+      ));
+    }
+
     // 来源：只展示后端真实检索到的条目，没有就不显示
     var cits = payload.citations || [];
     if (cits.length) {
@@ -142,9 +157,19 @@
         var head = el("div", "citation-head");
         head.appendChild(el("span", "citation-id", c.id));
         head.appendChild(el("span", "citation-title", c.title));
+        // 来源强度必须显式标出：topic 档只表示"该页面覆盖这个主题"，
+        // 不等于逐句对应，不能让它看起来和直接来源一样权威
+        if (c.support === "topic") {
+          head.appendChild(el("span", "citation-support", "主题来源"));
+        } else {
+          head.appendChild(el("span", "citation-support citation-support-direct", "直接来源"));
+        }
         a.appendChild(head);
         a.appendChild(el("div", "citation-meta",
           "采集日期 " + c.collected_at + " · 适用版本 " + c.version + " · 相关度 " + c.score));
+        if (c.support_note) {
+          a.appendChild(el("div", "citation-note", "说明：" + c.support_note));
+        }
         box.appendChild(a);
       });
       wrap.appendChild(box);
@@ -274,7 +299,12 @@
   });
 
   btnRetry.addEventListener("click", function () {
-    if (busy || !lastFailed) return;
+    if (busy) return;
+    // 没有待重发的提问时要给出反馈，而不是静默 return（那样玩家只会觉得按钮坏了）
+    if (!lastFailed) {
+      showNotice("当前没有失败待重发的提问。", false);
+      return;
+    }
     var pending = lastFailed;
     // 失败的请求没有写入 turns，这里只需移除界面上的那条提问气泡后原样重发
     var userMsgs = chatInner.querySelectorAll(".msg-user");
@@ -292,6 +322,65 @@
       emptyState = document.getElementById("empty-state");
     }
   });
+
+  /* ------------------------------------------------------------ 使用记录抽屉 */
+  var INTENT_SHORT = {
+    knowledge_qa: "知识",
+    situational_advice: "情境",
+    chitchat: "闲聊",
+    out_of_scope: "越界"
+  };
+
+  function renderLogItem(r) {
+    var item = el("div", "log-item");
+    var head = el("div", "log-head");
+    head.appendChild(el("span", "log-time", String(r.ts || "").replace("T", " ").slice(0, 19)));
+    head.appendChild(el("span", "log-ip", String(r.ip || "-")));
+    head.appendChild(el("span", "tag tag-intent", INTENT_SHORT[r.intent] || r.intent || "?"));
+    if (r.route_state) head.appendChild(el("span", "tag tag-route", ROUTE_LABEL[r.route_state] || r.route_state));
+    var t = r.timings || {};
+    head.appendChild(el("span", "tag tag-time", (t.total_ms || 0) + "ms"));
+    item.appendChild(head);
+    item.appendChild(el("div", "log-q", "问：" + (r.message || "")));
+    if (r.answer) item.appendChild(el("div", "log-a", "答：" + r.answer));
+    if (r.error) item.appendChild(el("div", "log-err", "错误：" + r.error));
+    return item;
+  }
+
+  function openDrawer() {
+    drawer.hidden = false;
+    drawerBody.innerHTML = "";
+    drawerMeta.textContent = "加载中…";
+    fetch("/api/logs?limit=60")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.enabled) {
+          drawerMeta.textContent = "使用记录已关闭（LOG_ENABLED=0）";
+          drawerBody.appendChild(el("div", "log-empty", "后端已关闭使用记录写入。"));
+          return;
+        }
+        var records = d.records || [];
+        drawerMeta.textContent = records.length + " 条 · " + d.log_dir;
+        if (!records.length) {
+          drawerBody.appendChild(el("div", "log-empty", "暂无记录。发几条问题后再来看。"));
+          return;
+        }
+        records.forEach(function (r) { drawerBody.appendChild(renderLogItem(r)); });
+      })
+      .catch(function () {
+        drawerMeta.textContent = "读取失败";
+        drawerBody.appendChild(el("div", "log-empty", "无法读取使用记录，请确认服务仍在运行。"));
+      });
+  }
+
+  function closeDrawer() { drawer.hidden = true; }
+
+  if (btnLogs) btnLogs.addEventListener("click", openDrawer);
+  if (btnDrawerClose) btnDrawerClose.addEventListener("click", closeDrawer);
+  if (drawer) {
+    drawer.addEventListener("click", function (e) { if (e.target === drawer) closeDrawer(); });
+  }
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDrawer(); });
 
   // 示例问题使用事件委托，清空对话重建空状态后依然有效
   chatInner.addEventListener("click", function (e) {

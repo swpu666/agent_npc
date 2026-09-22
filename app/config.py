@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     max_message_chars: int = 1000
     app_port: int = 8000
 
+    # ---------- 使用记录（含 IP 与对话内容，详见 app/observability.py 的隐私说明）----------
+    log_enabled: bool = True
+    log_dir: str = "logs"
+    # 单条消息/回答落盘的最大字符数，超出截断（避免日志无限膨胀）
+    log_max_chars: int = 2000
+
     # ---------- 开关 ----------
     mock_llm: bool = False
 

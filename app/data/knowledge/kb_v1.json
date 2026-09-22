@@ -2,8 +2,14 @@
   "kb_version": "1.0",
   "game": "王者荣耀",
   "collected_at": "2026-09-22",
-  "description": "面向玩家基础问答的小型知识库。所有条目均来自公开可访问的官方页面与公开资料，逐条记录来源标题、链接与采集日期。涉及版本变化的内容在 version 字段标注适用版本或范围。",
-  "topics": ["对局目标", "地图机制", "位置职责", "基础操作", "资源与经济"],
+  "description": "面向玩家基础问答的小型知识库。所有条目均来自公开可访问的页面，逐条记录来源标题、链接、采集日期与链接校验日期。source.support 标注来源强度：direct 表示该页面直接写明本条内容；topic 表示官方/公开页面覆盖该主题但不是逐句对应，差距写在 source.support_note 里。每条链接都通过 `python -m app.tools.kb_lint --check-urls` 实际校验过可达性。涉及版本变化的内容在 version 字段标注适用版本或范围。",
+  "topics": [
+    "对局目标",
+    "地图机制",
+    "位置职责",
+    "基础操作",
+    "资源与经济"
+  ],
   "entries": [
     {
       "id": "OBJ-WIN-001",
@@ -12,13 +18,27 @@
       "fact_key": "win_condition",
       "title": "获胜条件：摧毁敌方水晶，赢下对局",
       "content": "在王者峡谷的 5v5 对局中，单局胜负由水晶决定：任意一方摧毁对方的水晶即获得胜利，己方水晶被摧毁则失败。击杀数、经济领先、推塔数量都不直接决定胜负，最终判定只看水晶。",
-      "keywords": ["怎么赢", "赢的条件", "获胜条件", "什么算赢", "水晶", "基地", "输赢"],
-      "entities": ["水晶", "基地"],
+      "keywords": [
+        "怎么赢",
+        "赢的条件",
+        "获胜条件",
+        "什么算赢",
+        "水晶",
+        "基地",
+        "输赢"
+      ],
+      "entities": [
+        "水晶",
+        "基地"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（对局规则）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网首页（5v5 王者峡谷玩法总览）",
+        "url": "https://pvp.qq.com/",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "官网首页介绍 5v5 王者峡谷玩法；本条是胜负判定的机制表述"
       },
       "confidence": "high"
     },
@@ -29,13 +49,25 @@
       "fact_key": "tower_mechanic",
       "title": "防御塔的作用与攻击机制",
       "content": "防御塔位于每条分路的推进路线上，会对进入攻击范围的敌方单位造成伤害，为己方提供防守屏障。攻击方越塔强攻会受到塔的攻击，因此推进通常需要先清掉对方小兵，或者多人依靠控制与爆发快速拆塔。",
-      "keywords": ["防御塔", "塔", "越塔", "拆塔", "抗塔", "塔的作用"],
-      "entities": ["防御塔", "塔"],
+      "keywords": [
+        "防御塔",
+        "塔",
+        "越塔",
+        "拆塔",
+        "抗塔",
+        "塔的作用"
+      ],
+      "entities": [
+        "防御塔",
+        "塔"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（对局规则）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·新手指导（对战规则）",
+        "url": "https://pvp.qq.com/webplat/info/news_version3/15592/15748/15755/m12028/201507/361125.shtml",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "direct"
       },
       "confidence": "high"
     },
@@ -46,13 +78,27 @@
       "fact_key": "push_order",
       "title": "推塔顺序：外塔 → 高地塔 → 水晶",
       "content": "同一分路中，必须先摧毁外塔，再摧毁高地塔；只有某一路的高地塔被摧毁后，才能攻击位于高地的敌方水晶。因此想结束对局，至少要一路推穿到高地。",
-      "keywords": ["推塔顺序", "先推哪个塔", "能直接打水晶吗", "高地塔", "外塔", "一塔二塔"],
-      "entities": ["外塔", "高地塔", "水晶"],
+      "keywords": [
+        "推塔顺序",
+        "先推哪个塔",
+        "能直接打水晶吗",
+        "高地塔",
+        "外塔",
+        "一塔二塔"
+      ],
+      "entities": [
+        "外塔",
+        "高地塔",
+        "水晶"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（对局规则）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·新手指导（对战规则）",
+        "url": "https://pvp.qq.com/webplat/info/news_version3/15592/15748/15755/m12028/201507/361125.shtml",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页说明防御塔攻防机制，未逐句写明推塔顺序"
       },
       "confidence": "high"
     },
@@ -63,13 +109,26 @@
       "fact_key": "core_mode",
       "title": "核心玩法与常用对局模式",
       "content": "王者荣耀的核心玩法是 5v5 的王者峡谷对局，常见入口包括匹配对局与排位赛，不同入口共用同一张王者峡谷地图的基础机制：三条分路、野区、防御塔与水晶。单局时长随双方节奏波动，节奏顺利时更短，势均力敌时更长。",
-      "keywords": ["什么模式", "排位", "匹配", "一局多久", "5v5", "王者峡谷"],
-      "entities": ["王者峡谷", "排位赛", "匹配"],
+      "keywords": [
+        "什么模式",
+        "排位",
+        "匹配",
+        "一局多久",
+        "5v5",
+        "王者峡谷"
+      ],
+      "entities": [
+        "王者峡谷",
+        "排位赛",
+        "匹配"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（玩法介绍）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网首页（5v5 王者峡谷玩法总览）",
+        "url": "https://pvp.qq.com/",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "direct"
       },
       "confidence": "high"
     },
@@ -80,13 +139,24 @@
       "fact_key": "surrender_rule",
       "title": "投降与对局结束方式",
       "content": "对局中可以发起投降投票，需要在开局一定时间之后发起、并获得多数队友同意才会提前结束对局；水晶被摧毁或投降通过后进入结算。具体可发起时间与所需票数随版本调整，以客户端内说明为准。",
-      "keywords": ["投降", "怎么投降", "提前结束", "认输", "点了"],
-      "entities": ["投降"],
+      "keywords": [
+        "投降",
+        "怎么投降",
+        "提前结束",
+        "认输",
+        "点了"
+      ],
+      "entities": [
+        "投降"
+      ],
       "version": "版本相关，具体数值以客户端内说明为准",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（对局规则）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网首页（5v5 王者峡谷玩法总览）",
+        "url": "https://pvp.qq.com/",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "投降的可发起时间与票数随版本调整，本条只说明存在该机制，具体以客户端内说明为准"
       },
       "confidence": "medium"
     },
@@ -97,13 +167,30 @@
       "fact_key": "map_lanes",
       "title": "三条分路与野区的基本结构",
       "content": "王者峡谷分为三条分路——对抗路、中路、发育路，以及连接各路的野区。分路之间有河道与草丛，双方小兵会沿分路周期性推进。理解分路与野区的连接关系，是判断支援路线和判断敌方位置的基础。",
-      "keywords": ["分路", "有几条路", "三路", "上路", "下路", "中路", "野区", "地图结构"],
-      "entities": ["对抗路", "中路", "发育路", "野区"],
+      "keywords": [
+        "分路",
+        "有几条路",
+        "三路",
+        "上路",
+        "下路",
+        "中路",
+        "野区",
+        "地图结构"
+      ],
+      "entities": [
+        "对抗路",
+        "中路",
+        "发育路",
+        "野区"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（王者峡谷地图）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（分路意识与职责篇）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页按上/中/下路说明分路与职责"
       },
       "confidence": "high"
     },
@@ -114,13 +201,25 @@
       "fact_key": "red_buff_effect",
       "title": "红 BUFF 的作用",
       "content": "红 BUFF（猩红石像之力）提供持续一段时间的强化效果：持有者的普攻会附带额外伤害并造成减速。因此它常用于打野提高清野效率与抓人时的黏人能力，也可能让给发育路射手或中路英雄，增强对线消耗能力。",
-      "keywords": ["红buff", "红BUFF", "猩红石像", "红爸爸", "红buff有什么用", "红buff作用"],
-      "entities": ["红BUFF", "猩红石像"],
+      "keywords": [
+        "红buff",
+        "红BUFF",
+        "猩红石像",
+        "红爸爸",
+        "红buff有什么用",
+        "红buff作用"
+      ],
+      "entities": [
+        "红BUFF",
+        "猩红石像"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（野区资源）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "游民星空·王者荣耀野怪/BUFF/暴君刷新与用途详解",
+        "url": "https://wap.gamersky.com/soft/Content-974962.html",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "direct"
       },
       "confidence": "high"
     },
@@ -131,13 +230,26 @@
       "fact_key": "blue_buff_effect",
       "title": "蓝 BUFF 的作用",
       "content": "蓝 BUFF（蔚蓝石像之力）提供持续一段时间的强化效果：减少技能冷却时间并有助于法力与能量的回复。因此它通常优先给依赖频繁释放技能的打野或中路法术英雄使用，用来提高清线与消耗的节奏。",
-      "keywords": ["蓝buff", "蓝BUFF", "蔚蓝石像", "蓝爸爸", "蓝buff有什么用", "减cd", "冷却"],
-      "entities": ["蓝BUFF", "蔚蓝石像"],
+      "keywords": [
+        "蓝buff",
+        "蓝BUFF",
+        "蔚蓝石像",
+        "蓝爸爸",
+        "蓝buff有什么用",
+        "减cd",
+        "冷却"
+      ],
+      "entities": [
+        "蓝BUFF",
+        "蔚蓝石像"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（野区资源）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "游民星空·王者荣耀野怪/BUFF/暴君刷新与用途详解",
+        "url": "https://wap.gamersky.com/soft/Content-974962.html",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "direct"
       },
       "confidence": "high"
     },
@@ -148,13 +260,27 @@
       "fact_key": "buff_refresh_time",
       "title": "红 BUFF 与蓝 BUFF 的刷新节奏",
       "content": "红 BUFF 与蓝 BUFF 在被击杀后经过固定间隔会重新刷新，打野需要按刷新节奏规划刷野路线与抓人时机。刷新间隔的具体秒数在不同版本有过调整，请以客户端内说明或官方版本公告为准。",
-      "keywords": ["buff刷新", "buff多久刷新", "刷新时间", "多久刷一次", "红buff刷新", "反buff"],
-      "entities": ["红BUFF", "蓝BUFF", "刷新"],
+      "keywords": [
+        "buff刷新",
+        "buff多久刷新",
+        "刷新时间",
+        "多久刷一次",
+        "红buff刷新",
+        "反buff"
+      ],
+      "entities": [
+        "红BUFF",
+        "蓝BUFF",
+        "刷新"
+      ],
       "version": "数值随版本调整，以客户端内说明为准",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（野区资源）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "游民星空·王者荣耀野怪/BUFF/暴君刷新与用途详解",
+        "url": "https://wap.gamersky.com/soft/Content-974962.html",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页给出具体刷新秒数，本条正文刻意不写入数值（随版本调整）"
       },
       "confidence": "medium"
     },
@@ -165,13 +291,26 @@
       "fact_key": "jungle_monsters",
       "title": "野区野怪与收益",
       "content": "野区分布着多组野怪，击杀野怪可以获得金币与经验，是打野位的主要发育来源；野怪被清空后会在固定间隔重新刷新。合理规划刷野顺序，可以在保证等级领先的同时兼顾线上支援。",
-      "keywords": ["野怪", "刷野", "野区资源", "野怪收益", "打野经济", "野怪经验"],
-      "entities": ["野怪", "野区"],
+      "keywords": [
+        "野怪",
+        "刷野",
+        "野区资源",
+        "野怪收益",
+        "打野经济",
+        "野怪经验"
+      ],
+      "entities": [
+        "野怪",
+        "野区"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（野区资源）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·新手指导（对战规则）",
+        "url": "https://pvp.qq.com/webplat/info/news_version3/15592/15748/15755/m12028/201507/361125.shtml",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页写明击杀野怪可获得经验；金币与刷新间隔以客户端内说明为准"
       },
       "confidence": "high"
     },
@@ -182,13 +321,27 @@
       "fact_key": "tyrant",
       "title": "暴君（小龙）的争夺价值",
       "content": "暴君位于河道区域，是中前期双方争夺的重要中立资源。击杀暴君可以为己方带来团队增益（金币或经验层面的收益），并在一定时间后重新刷新；对局进行到后期时，暴君会以更强的形态出现。",
-      "keywords": ["暴君", "小龙", "河道怪", "打小龙", "暗影暴君", "野区大怪"],
-      "entities": ["暴君", "小龙"],
+      "keywords": [
+        "小龙",
+        "小龙什么时候打",
+        "打小龙",
+        "暗影暴君",
+        "暴君",
+        "暴君多久刷新",
+        "河道怪",
+        "野区大怪"
+      ],
+      "entities": [
+        "暴君",
+        "小龙"
+      ],
       "version": "版本相关，形态与增益随版本调整",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（中立资源）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·新手指导（对战规则）",
+        "url": "https://pvp.qq.com/webplat/info/news_version3/15592/15748/15755/m12028/201507/361125.shtml",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "direct"
       },
       "confidence": "medium"
     },
@@ -199,13 +352,28 @@
       "fact_key": "overlord",
       "title": "主宰（大龙）的作用",
       "content": "主宰被玩家俗称为「大龙」，击杀后会为击杀方提供强力的推进帮助，通常表现为获得可随兵线一起推进的特殊单位，能够显著加快推塔节奏。它位于河道另一侧，一般在暴君之后被双方争夺。",
-      "keywords": ["主宰", "大龙", "主宰先锋", "打大龙", "大龙有什么用", "龙buff"],
-      "entities": ["主宰", "大龙"],
+      "keywords": [
+        "主宰",
+        "主宰先锋",
+        "主宰多久刷新",
+        "大龙",
+        "大龙什么时候打",
+        "大龙有什么用",
+        "打大龙",
+        "龙buff"
+      ],
+      "entities": [
+        "主宰",
+        "大龙"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（中立资源）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "游民星空·王者荣耀野怪/BUFF/暴君刷新与用途详解",
+        "url": "https://wap.gamersky.com/soft/Content-974962.html",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页在野怪分类中列出主宰；本条为其推进作用的一般性描述"
       },
       "confidence": "high"
     },
@@ -216,13 +384,25 @@
       "fact_key": "bush_vision",
       "title": "草丛与视野机制",
       "content": "草丛会让进入其中的单位被隐藏：站在草丛里不会立刻被敌方看见，敌方进入同一片草丛才能发现你。利用草丛可以埋伏、躲避技能视野或安全回城；进入未知草丛前，应先看小地图确认敌方英雄的位置。",
-      "keywords": ["草丛", "视野", "埋伏", "蹲草", "看不见", "隐身"],
-      "entities": ["草丛", "视野"],
+      "keywords": [
+        "草丛",
+        "视野",
+        "埋伏",
+        "蹲草",
+        "看不见",
+        "隐身"
+      ],
+      "entities": [
+        "草丛",
+        "视野"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（王者峡谷地图）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（草丛视野知识篇）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?G_Biz=18&tid=439696",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "direct"
       },
       "confidence": "high"
     },
@@ -233,13 +413,22 @@
       "fact_key": "river",
       "title": "河道与中立区域",
       "content": "河道横穿地图中部，连接两侧野区，是支援与游走的主要通路。河道周边是暴君、主宰等中立资源的刷新区域，也是双方最容易发生遭遇战的区域，通过河道支援时要留意敌方动向。",
-      "keywords": ["河道", "中路河道", "游走路线", "支援路线"],
-      "entities": ["河道"],
+      "keywords": [
+        "河道",
+        "中路河道",
+        "游走路线",
+        "支援路线"
+      ],
+      "entities": [
+        "河道"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（王者峡谷地图）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "17173·王者荣耀野区野怪分布解析",
+        "url": "https://news.17173.com/z/pvp/content/12052016/105149910.shtml",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "direct"
       },
       "confidence": "high"
     },
@@ -250,13 +439,25 @@
       "fact_key": "role_top",
       "title": "对抗路的职责",
       "content": "对抗路通常是单人发育的分路，由对抗路英雄单独面对敌方同类英雄。职责是在对线中稳住局势甚至取得优势、牵制对方英雄的发育，并在关键时间点通过支援或传送参与团战，为团队创造以多打少的机会。",
-      "keywords": ["对抗路", "上单", "上路职责", "上单干什么", "对抗路职责"],
-      "entities": ["对抗路", "上单"],
+      "keywords": [
+        "对抗路",
+        "上单",
+        "上路职责",
+        "上单干什么",
+        "对抗路职责"
+      ],
+      "entities": [
+        "对抗路",
+        "上单"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（位置分工）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（分路意识与职责篇）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页按分路讲职责，本条为对抗路职责的归纳表述"
       },
       "confidence": "high"
     },
@@ -267,13 +468,26 @@
       "fact_key": "role_jungle",
       "title": "打野的职责",
       "content": "打野不长期占据某条分路，主要负责清理野区资源快速提升等级，通过游走支援各路、抓单，并配合队友争夺暴君、主宰等中立资源。打野的核心价值在于节奏：什么时候刷野、什么时候抓人，会直接影响整局走向。",
-      "keywords": ["打野", "打野职责", "打野干什么", "打野怎么玩", "野区", "jungle"],
-      "entities": ["打野", "野区"],
+      "keywords": [
+        "打野",
+        "打野职责",
+        "打野干什么",
+        "打野怎么玩",
+        "野区",
+        "jungle"
+      ],
+      "entities": [
+        "打野",
+        "野区"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（位置分工）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（分路意识与职责篇）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页按分路讲职责，本条为打野职责的归纳表述"
       },
       "confidence": "high"
     },
@@ -284,13 +498,25 @@
       "fact_key": "role_mid",
       "title": "中路的职责",
       "content": "中路位于地图中央，可以向两侧快速支援。中路英雄需要兼顾清线与游走，掌控河道与中立资源争夺的主动权，并在团战中提供主要的法术或爆发输出，因此路线选择与支援时机是中路的核心功课。",
-      "keywords": ["中路", "中单", "中路职责", "法师职责", "中单干什么"],
-      "entities": ["中路", "中单"],
+      "keywords": [
+        "中路",
+        "中单",
+        "中路职责",
+        "法师职责",
+        "中单干什么"
+      ],
+      "entities": [
+        "中路",
+        "中单"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（位置分工）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（分路意识与职责篇）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页按分路讲职责，本条为中路职责的归纳表述"
       },
       "confidence": "high"
     },
@@ -301,13 +527,26 @@
       "fact_key": "role_adc",
       "title": "发育路的职责",
       "content": "发育路通常由射手承担，前期以稳定发育、积累经济为主，依靠装备成型后在团战中提供持续输出。由于自身比较脆，发育路需要队友保护，也要避免单独走位被敌方针对抓单。",
-      "keywords": ["发育路", "下路", "射手", "ADC", "发育路职责", "射手干什么"],
-      "entities": ["发育路", "射手"],
+      "keywords": [
+        "发育路",
+        "下路",
+        "射手",
+        "ADC",
+        "发育路职责",
+        "射手干什么"
+      ],
+      "entities": [
+        "发育路",
+        "射手"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（位置分工）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（分路意识与职责篇）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页按分路讲职责，本条为发育路职责的归纳表述"
       },
       "confidence": "high"
     },
@@ -318,13 +557,25 @@
       "fact_key": "role_support",
       "title": "游走（辅助）的职责",
       "content": "游走位不长期吃线，主要任务是提供视野、保护核心输出、承担开团与控制，并通过游走帮助其他分路建立优势。辅助的经济优先级低于队友，价值体现在团队配合与关键时刻的保护。",
-      "keywords": ["辅助", "游走", "游走位", "辅助职责", "辅助干什么"],
-      "entities": ["游走", "辅助"],
+      "keywords": [
+        "辅助",
+        "游走",
+        "游走位",
+        "辅助职责",
+        "辅助干什么"
+      ],
+      "entities": [
+        "游走",
+        "辅助"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（位置分工）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（分路意识与职责篇）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页按分路讲职责，本条为游走位职责的归纳表述"
       },
       "confidence": "high"
     },
@@ -335,13 +586,25 @@
       "fact_key": "role_team",
       "title": "五个位置的分工与配合",
       "content": "对抗路、打野、中路、发育路、游走五个位置各自承担不同职责，共同构成阵容的基本结构。理解自己位置该做什么、不与队友争夺同一份资源，是减少团队内耗、提高胜率的基础。",
-      "keywords": ["位置分工", "阵容", "五个位置", "怎么配合", "位置怎么分"],
-      "entities": ["阵容", "位置"],
+      "keywords": [
+        "位置分工",
+        "阵容",
+        "五个位置",
+        "怎么配合",
+        "位置怎么分"
+      ],
+      "entities": [
+        "阵容",
+        "位置"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（位置分工）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（分路意识与职责篇）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页按分路讲职责，本条为五个位置分工的归纳表述"
       },
       "confidence": "high"
     },
@@ -352,13 +615,24 @@
       "fact_key": "last_hit",
       "title": "补刀的含义与作用",
       "content": "补刀指由自己完成对敌方小兵的最后一击。相比只是站在兵线附近蹭金币，完成最后一击能获得更多金币，因此在对线期尽量多补刀，是最直接的积累经济方式。",
-      "keywords": ["补刀", "补兵", "最后一击", "漏刀", "补刀什么意思"],
-      "entities": ["补刀"],
+      "keywords": [
+        "补刀",
+        "补兵",
+        "最后一击",
+        "漏刀",
+        "补刀什么意思"
+      ],
+      "entities": [
+        "补刀"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（基础操作）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·新手指南",
+        "url": "https://pvp.qq.com/web201605/advice.shtml",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "官方新手指南；补刀收益的具体数值以客户端内说明为准"
       },
       "confidence": "high"
     },
@@ -369,13 +643,24 @@
       "fact_key": "gold_source",
       "title": "金币的主要来源",
       "content": "局内金币主要来自击杀小兵、野怪、防御塔以及击败敌方英雄，其中小兵与野怪是最稳定的来源。经济领先会转化为装备优势，因此多补刀、少送人头是最直接的提升手段。",
-      "keywords": ["经济来源", "金币从哪来", "怎么赚钱", "经济怎么来", "金币怎么得"],
-      "entities": ["金币", "经济"],
+      "keywords": [
+        "经济来源",
+        "金币从哪来",
+        "怎么赚钱",
+        "经济怎么来",
+        "金币怎么得"
+      ],
+      "entities": [
+        "金币",
+        "经济"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（基础操作）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（快速刷钱技巧）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=566041",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "direct"
       },
       "confidence": "high"
     },
@@ -386,13 +671,26 @@
       "fact_key": "equipment",
       "title": "装备购买与出装思路",
       "content": "局内在商店使用金币购买装备，装备会提供属性与被动效果。通常先买性价比高的前期小件（例如鞋子）再逐步合成大件；简单取舍思路是：扛不住就补防御，打不动就补输出，避免一直攒钱憋大件导致对线落后。",
-      "keywords": ["出装", "装备", "买装备", "鞋子", "怎么出装", "装备怎么买"],
-      "entities": ["装备", "出装"],
+      "keywords": [
+        "出装",
+        "装备",
+        "买装备",
+        "鞋子",
+        "怎么出装",
+        "装备怎么买"
+      ],
+      "entities": [
+        "装备",
+        "出装"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（基础操作）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·新手指南",
+        "url": "https://pvp.qq.com/web201605/advice.shtml",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "官方新手指南；具体出装以客户端内的装备说明为准"
       },
       "confidence": "high"
     },
@@ -403,13 +701,25 @@
       "fact_key": "skill_combo",
       "title": "技能、被动与连招",
       "content": "每个英雄都有被动技能与主动技能，被动通常无需手动释放。连招的关键在于释放顺序与时机，常见做法是先用控制或减速技能命中目标，再衔接高伤害技能，并结合普攻与走位，避免技能全部落空后站着挨打。",
-      "keywords": ["技能", "被动", "连招", "技能怎么放", "技能释放"],
-      "entities": ["技能", "被动"],
+      "keywords": [
+        "技能",
+        "被动",
+        "连招",
+        "技能怎么放",
+        "技能释放"
+      ],
+      "entities": [
+        "技能",
+        "被动"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（基础操作）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·新手指南",
+        "url": "https://pvp.qq.com/web201605/advice.shtml",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "官方新手指南；具体英雄的连招以客户端的技能说明为准"
       },
       "confidence": "high"
     },
@@ -420,13 +730,25 @@
       "fact_key": "recall",
       "title": "回城与状态恢复",
       "content": "回城可以让英雄返回泉水并恢复生命与法力，但需要持续施法，受到伤害或移动会被打断。血量偏低时及时回城，或利用草丛与视野盲区回城，可以避免被抓；但频繁回城会丢失兵线与经验，需要权衡。",
-      "keywords": ["回城", "回家", "恢复血量", "泉水", "怎么回城"],
-      "entities": ["回城", "泉水"],
+      "keywords": [
+        "回城",
+        "回家",
+        "恢复血量",
+        "泉水",
+        "怎么回城"
+      ],
+      "entities": [
+        "回城",
+        "泉水"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（基础操作）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·新手指南",
+        "url": "https://pvp.qq.com/web201605/advice.shtml",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "官方新手指南；回城的引导时间以客户端内说明为准"
       },
       "confidence": "high"
     },
@@ -437,13 +759,23 @@
       "fact_key": "minimap",
       "title": "小地图与信息判断",
       "content": "小地图会显示双方英雄的大致位置以及自己视野内的信息。养成隔一小段时间看一眼小地图的习惯，可以提前发现敌方游走、判断支援路线与被抓风险，是新手提升最快的一项基础操作。",
-      "keywords": ["小地图", "看地图", "视野信息", "怎么防抓"],
-      "entities": ["小地图"],
+      "keywords": [
+        "小地图",
+        "看地图",
+        "视野信息",
+        "怎么防抓"
+      ],
+      "entities": [
+        "小地图"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（基础操作）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（草丛视野知识篇）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?G_Biz=18&tid=439696",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页围绕草丛与视野展开，本条为小地图观察的一般性建议"
       },
       "confidence": "high"
     },
@@ -454,13 +786,24 @@
       "fact_key": "gold_share",
       "title": "金币的来源与分配",
       "content": "同一波小兵的金币如果由多人分摊，每个人获得的会变少，因此队友之间要避免长时间抢占同一份资源。打野靠野区、射手靠发育路兵线、中路靠中路兵线，是常见的资源分配方式。",
-      "keywords": ["金币分配", "抢线", "吃线", "资源分配", "分摊金币"],
-      "entities": ["金币", "兵线"],
+      "keywords": [
+        "金币分配",
+        "抢线",
+        "吃线",
+        "资源分配",
+        "分摊金币"
+      ],
+      "entities": [
+        "金币",
+        "兵线"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（经济系统）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（快速刷钱技巧）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=566041",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "direct"
       },
       "confidence": "high"
     },
@@ -471,13 +814,25 @@
       "fact_key": "experience",
       "title": "经验与等级提升",
       "content": "经验主要来自附近的小兵、野怪与击败英雄，等级提升会增加英雄属性并强化技能。等级落后通常意味着少吃了兵线或野区资源，这时应优先补发育，而不是在等级劣势下强行开战。",
-      "keywords": ["经验", "等级", "升级", "等级差", "等级落后"],
-      "entities": ["经验", "等级"],
+      "keywords": [
+        "经验",
+        "等级",
+        "升级",
+        "等级差",
+        "等级落后"
+      ],
+      "entities": [
+        "经验",
+        "等级"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（经济系统）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（快速刷钱技巧）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=566041",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页讲经济获取与刷钱顺序，本条为经验与等级的一般性说明"
       },
       "confidence": "high"
     },
@@ -488,13 +843,24 @@
       "fact_key": "minion_wave",
       "title": "兵线与推进时机",
       "content": "兵线由己方小兵沿分路向敌方推进，其中包含普通兵与更强力的兵种。兵线位置决定了推塔与防守的时机：把兵线推过去可以牵制对手、掩护打野争夺资源；兵线停在自家塔前则容易被对方压制。",
-      "keywords": ["兵线", "推线", "控线", "小兵", "兵线怎么处理"],
-      "entities": ["兵线", "小兵"],
+      "keywords": [
+        "兵线",
+        "推线",
+        "控线",
+        "小兵",
+        "兵线怎么处理"
+      ],
+      "entities": [
+        "兵线",
+        "小兵"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（经济系统）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（快速刷钱技巧）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=566041",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "direct"
       },
       "confidence": "high"
     },
@@ -505,13 +871,24 @@
       "fact_key": "tower_reward",
       "title": "摧毁防御塔的收益",
       "content": "摧毁防御塔除了打开该分路的推进路线，还会为团队带来金币收益。因此推塔不仅是推进手段，也是扩大经济优势的方式：在保证安全的前提下，有机会就多消耗与拆除敌方防御塔。",
-      "keywords": ["推塔收益", "塔的金币", "拆塔有什么用", "推塔有什么用"],
-      "entities": ["防御塔", "金币"],
+      "keywords": [
+        "推塔收益",
+        "塔的金币",
+        "拆塔有什么用",
+        "推塔有什么用"
+      ],
+      "entities": [
+        "防御塔",
+        "金币"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（经济系统）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·新手指导（对战规则）",
+        "url": "https://pvp.qq.com/webplat/info/news_version3/15592/15748/15755/m12028/201507/361125.shtml",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页说明防御塔攻防机制；塔的金币收益以客户端内说明为准"
       },
       "confidence": "high"
     },
@@ -522,15 +899,88 @@
       "fact_key": "gold_lead",
       "title": "经济领先意味着什么",
       "content": "经济领先意味着能更早买到成型装备，从而在同等操作水平下拥有更高的输出与生存能力。但经济只是概率优势：如果为了贪金币而落单被击杀，反而会把优势送回去，所以领先时应优先换取地图资源，而不是冒险单挑。",
-      "keywords": ["经济领先", "经济优势", "顺风", "领先怎么打", "优势怎么滚"],
-      "entities": ["经济", "优势"],
+      "keywords": [
+        "经济领先",
+        "经济优势",
+        "顺风",
+        "领先怎么打",
+        "优势怎么滚"
+      ],
+      "entities": [
+        "经济",
+        "优势"
+      ],
       "version": "全版本",
       "source": {
-        "title": "王者荣耀官网·游戏资料中心（经济系统）",
-        "url": "https://pvp.qq.com/web201605/info-center.shtml",
-        "collected_at": "2026-09-22"
+        "title": "王者荣耀官网·攻略（快速刷钱技巧）",
+        "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=566041",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页讲经济获取与刷钱顺序，本条为经济优势意义的归纳表述"
       },
       "confidence": "high"
+    },
+    {
+      "id": "MAP-TYRANT-002",
+      "topic": "地图机制",
+      "subtopic": "中立资源",
+      "fact_key": "tyrant_refresh",
+      "title": "暴君的首刷时间、再刷间隔与击杀收益",
+      "content": "暴君在开局约 2 分钟时首次刷新，被击杀后约 3 分钟重新刷新。击杀后由击杀方全队获得经验与金币收益。以上为公开攻略给出的时间与收益口径，不同版本可能调整，请以客户端内说明为准。",
+      "keywords": [
+        "暴君刷新",
+        "暴君多久刷新",
+        "小龙刷新",
+        "暴君收益",
+        "打小龙有什么用",
+        "暴君几分钟"
+      ],
+      "entities": [
+        "暴君",
+        "小龙"
+      ],
+      "version": "数值随版本调整（来源页面未标注版本，采集于 2026-09-22）",
+      "source": {
+        "title": "DVG游戏网·《王者荣耀》龙刷新时间详解（暴君与主宰刷新机制）",
+        "url": "https://www.dvg.cn/news/106498.html",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页给出了具体时间与收益，但**未标注适用版本**，且未涵盖 10 分钟后的进阶形态与 20 分钟风暴龙王；本条只采纳其机制性数值，并保留「以客户端内说明为准」的提示"
+      },
+      "confidence": "medium"
+    },
+    {
+      "id": "MAP-OVERLORD-002",
+      "topic": "地图机制",
+      "subtopic": "中立资源",
+      "fact_key": "overlord_refresh",
+      "title": "主宰的首刷时间、再刷间隔与击杀收益",
+      "content": "主宰在开局约 8 分钟时首次刷新，被击杀后约每 5 分钟刷新一次。击杀方会获得随兵线一起推进的主宰先锋，并获得增加生命的增益（约持续 90 秒）。以上为公开攻略给出的时间与收益口径，不同版本可能调整，请以客户端内说明为准。",
+      "keywords": [
+        "主宰刷新",
+        "大龙多久刷新",
+        "主宰收益",
+        "主宰先锋",
+        "打大龙有什么用",
+        "主宰几分钟"
+      ],
+      "entities": [
+        "主宰",
+        "大龙",
+        "主宰先锋"
+      ],
+      "version": "数值随版本调整（来源页面未标注版本，采集于 2026-09-22）",
+      "source": {
+        "title": "DVG游戏网·《王者荣耀》龙刷新时间详解（暴君与主宰刷新机制）",
+        "url": "https://www.dvg.cn/news/106498.html",
+        "collected_at": "2026-09-22",
+        "verified_at": "2026-09-22",
+        "support": "topic",
+        "support_note": "该页给出了具体时间与收益，但**未标注适用版本**，且未涵盖 10 分钟后的进阶形态与 20 分钟风暴龙王；本条只采纳其机制性数值，并保留「以客户端内说明为准」的提示"
+      },
+      "confidence": "medium"
     }
   ]
 }

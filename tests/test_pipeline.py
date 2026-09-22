@@ -9,9 +9,11 @@ from app.agent.intent import (
     INTENT_KNOWLEDGE,
     INTENT_OUT_OF_SCOPE,
     INTENT_SITUATIONAL,
+    ROUTE_KB_GAP,
     ROUTE_KB_MISS,
     ROUTE_NEED_MORE_INFO,
 )
+from app.agent.normalize import is_no_coverage_leading
 from app.agent.llm import LLMError, LLMResult
 from app.agent.pipeline import Agent
 from app.agent.retrieval import load_knowledge_base
@@ -26,12 +28,15 @@ class FakeLLM:
     def __init__(self, reply: str = "这是来自假模型的回答。"):
         self.reply = reply
         self.calls: list[list[dict]] = []
+        # 意图兜底分类的调用次数单独计数：意图环节不该为上下文买单
+        self.classify_calls = 0
 
     def chat(self, messages, temperature=None, max_tokens=None) -> LLMResult:
         self.calls.append(messages)
         return LLMResult(text=self.reply, model=self.model, latency_ms=12)
 
     def classify_intent(self, text: str):
+        self.classify_calls += 1
         return None
 
 
@@ -97,6 +102,80 @@ def test_near_miss_titles_require_field_match(settings: Settings) -> None:
     assert result.debug["near_miss_titles"] == []
 
 
+# --------------------------------------------------------------- 知识库覆盖缺口
+def test_kb_gap_answers_with_general_knowledge_but_no_sources(settings: Settings) -> None:
+    """英雄级问题超出知识库覆盖范围：允许通用理解作答，但必须标注且不带任何来源。"""
+    fake = FakeLLM(
+        reply="我知识库里没有收录英雄使用率这类数据，下面是我的通用理解，仅供参考："
+        "挑游走位英雄时优先看能不能提供视野、保护核心输出和开团。具体用谁以客户端内说明为准。"
+    )
+    agent, _ = build_agent(settings, fake)
+    result = agent.answer("给我介绍几个辅助的使用率高的英雄")
+
+    assert result.intent == INTENT_KNOWLEDGE
+    assert result.route_state == ROUTE_KB_GAP
+    assert result.citations == [], "覆盖缺口的问题不得展示来源"
+    assert len(fake.calls) == 1, "覆盖缺口应走模型生成通用理解，而不是走拒答模板"
+
+    system_msgs = [m["content"] for m in fake.calls[0] if m["role"] == "system"]
+    assert any("知识库覆盖不到" in c for c in system_msgs), "必须把覆盖缺口说明注入提示词"
+    # 半相关条目仍作为背景传给模型，但不展示，且在 debug 里可核对
+    assert result.debug["withheld_materials"] == ["ROLE-SUPPORT-001"]
+    assert any("未引用知识库来源" in n for n in result.guard["notes"])
+
+
+def test_kb_gap_not_confused_with_kb_miss(settings: Settings) -> None:
+    """覆盖缺口与"未命中"是两回事：前者能用通用理解，后者必须如实说不知道。"""
+    agent, _ = build_agent(settings)
+    assert agent.answer("蔡文姬怎么玩").route_state == ROUTE_KB_GAP
+    assert agent.answer("巅峰赛的积分是怎么计算的？").route_state == ROUTE_KB_MISS
+
+
+def test_partial_hit_still_shows_no_source_when_model_says_not_covered(settings: Settings) -> None:
+    """安全网：模型开门见山说没收录时，**既清空来源、也要标成覆盖不足**。
+
+    只清来源不改路由状态会让界面自相矛盾：标着"正常回答"却一个来源都没有。
+    实测在「王者荣耀一共有几种召唤师技能？」上就是这个表现（检到了"技能"条目、
+    模型说答不了、来源被清空但路由仍是空）。
+    """
+    fake = FakeLLM(reply="这个我答不了。我的知识库里只收录了游走位的职责说明，没有英雄使用率数据。")
+    agent, _ = build_agent(settings, fake)
+    result = agent.answer("游走位要注意什么？")
+
+    assert result.debug["retrieved"], "这条确实检到了半相关资料"
+    assert result.citations == [], "模型自述未收录时不得展示来源"
+    assert result.route_state == ROUTE_KB_GAP, "只清来源不改路由状态会让界面自相矛盾"
+    assert any("已按覆盖不足处理" in n for n in result.guard["notes"])
+
+
+def test_late_disclaimer_does_not_clear_citations(settings: Settings) -> None:
+    """正常的合规免责说明出现在回答末尾时，不得把来源也一起清掉。"""
+    reply = "红BUFF能强化普攻并造成减速。" + "补充说明。" * 20 + "刷新间隔的具体秒数材料里没写，以客户端内说明为准。"
+    agent, _ = build_agent(settings, FakeLLM(reply=reply))
+    result = agent.answer("红BUFF有什么作用？")
+    assert result.citations, "末尾的正常免责说明不应清空来源"
+
+
+@pytest.mark.parametrize(
+    "answer,expected",
+    [
+        # 开门见山就是拒答 → 清空来源
+        ("这个我答不了。我的知识库里没有收录。", True),
+        ("我知识库里没有收录英雄使用率的数据。", True),
+        # 正常作答、末尾补免责说明 → 不得清空来源
+        ("红BUFF能强化普攻。" + "说明。" * 40 + "具体数值材料里没写。", False),
+        # 回归：第一句在正常作答，第二句才提到"没收录" → 不得清空（实测踩过这个坑）
+        (
+            "前期主要是清理野区资源、快速提升等级，然后通过游走支援各路、抓单。"
+            "至于具体几级该去哪、先刷哪片野，材料里没写，我的知识库里也没有收录这个。",
+            False,
+        ),
+    ],
+)
+def test_is_no_coverage_leading_only_checks_first_sentence(answer: str, expected: bool) -> None:
+    assert is_no_coverage_leading(answer) is expected
+
+
 # --------------------------------------------------------------- 能力边界
 def test_out_of_scope_uses_template_without_model(settings: Settings) -> None:
     agent, fake = build_agent(settings)
@@ -150,6 +229,51 @@ def test_situational_followup_retrieves_via_history(settings: Settings) -> None:
     assert any(c["id"] == "ROLE-JUNGLE-001" for c in result.citations)
 
 
+def test_situational_multi_turn_keeps_context_and_skips_intent_model(settings: Settings) -> None:
+    """回归：实测反馈的多轮情境对话。
+
+    「我这局劣势了该怎么办」→「我玩的是悟空」→「对面领先1000个人头」
+
+    早期版本有三个问题：第二轮被判成"闲聊"、意图环节两次走模型兜底（0.8~1.2 秒）、
+    第三轮又把位置/阶段/英雄原样问一遍。
+    """
+    from app.agent.templates import NEED_MORE_INFO_TEMPLATE
+
+    agent, fake = build_agent(settings)
+    history: list[dict] = []
+
+    first = agent.answer("我这局劣势了该怎么办？", history)
+    assert first.intent == INTENT_SITUATIONAL
+    assert first.route_state == ROUTE_NEED_MORE_INFO
+    history += [{"role": "user", "content": "我这局劣势了该怎么办？"},
+                {"role": "assistant", "content": first.answer}]
+
+    second = agent.answer("我玩的是悟空", history)
+    assert second.intent == INTENT_SITUATIONAL, "补条件不该被判成闲聊"
+    assert second.intent_detail["source"] == "rule"
+    assert "悟空" in second.intent_detail["conditions"]["hero"]
+    assert second.route_state is None, "已经追问过，不该再抛同一组问题"
+    history += [{"role": "user", "content": "我玩的是悟空"},
+                {"role": "assistant", "content": second.answer}]
+
+    third = agent.answer("对面领先1000个人头", history)
+    assert third.intent == INTENT_SITUATIONAL
+    assert third.route_state is None
+    assert "用的哪个英雄" not in third.answer
+
+    assert fake.classify_calls == 0, "三轮的意图判定都应走规则，不能调用模型兜底"
+    assert NEED_MORE_INFO_TEMPLATE.startswith("想给你更靠谱的建议")
+
+
+def test_need_more_info_asks_only_missing_conditions() -> None:
+    """追问模板只问缺的条件，不再把已答过的原样再问一遍。"""
+    from app.agent.templates import need_more_info_answer
+
+    partial = need_more_info_answer(["position", "phase"])
+    assert "哪个位置" in partial and "哪个阶段" in partial
+    assert "用的哪个英雄" not in partial, "英雄已经说过，不该再问"
+
+
 def test_standalone_question_does_not_pull_in_history(settings: Settings) -> None:
     """自带主题词的问题必须先单独检索命中，不拼接历史，避免话题漂移。"""
     agent, _ = build_agent(settings)
@@ -201,6 +325,17 @@ def test_fabricated_url_is_stripped(settings: Settings) -> None:
     assert "https://fake-example.com" not in result.answer
     assert result.guard["sanitized_urls"], "编造链接应被剔除并记录"
     assert all(c["url"].startswith("http") for c in result.citations)
+
+
+def test_citation_carries_source_support_level(settings: Settings) -> None:
+    """来源卡片必须带上"直接来源/主题来源"的强度标注，否则玩家会把两者当成同等可信。"""
+    agent, _ = build_agent(settings)
+    result = agent.answer("补刀是什么意思？")
+    assert result.citations
+    for c in result.citations:
+        assert c["url"].startswith("http")
+        assert c["support"] in ("direct", "topic")
+        assert c["collected_at"]
 
 
 def test_no_citations_means_no_sources_rendered(settings: Settings) -> None:

@@ -24,11 +24,15 @@ from app.agent.normalize import (
 )
 from app.agent.synonyms import (
     CHITCHAT_PATTERNS,
+    CONDITION_REPLY_PATTERNS,
+    HERO_HINTS,
+    KB_GAP_RULES,
     OUT_OF_SCOPE_RULES,
     QUESTION_PATTERNS,
     SITUATIONAL_CONTEXT,
     SITUATIONAL_SUBJECT,
 )
+from app.agent.templates import is_need_more_info_reply
 
 INTENT_KNOWLEDGE = "knowledge_qa"
 INTENT_SITUATIONAL = "situational_advice"
@@ -39,6 +43,7 @@ INTENTS = (INTENT_KNOWLEDGE, INTENT_SITUATIONAL, INTENT_CHITCHAT, INTENT_OUT_OF_
 
 ROUTE_NEED_MORE_INFO = "need_more_info"
 ROUTE_KB_MISS = "kb_miss"
+ROUTE_KB_GAP = "kb_gap"
 
 # 多意图优先级（分数相同时按此顺序裁决）
 PRIORITY = [INTENT_OUT_OF_SCOPE, INTENT_SITUATIONAL, INTENT_KNOWLEDGE, INTENT_CHITCHAT]
@@ -57,6 +62,17 @@ SCORE_CHITCHAT = 4
 _SITU_SUBJECT_RE = re.compile(SITUATIONAL_SUBJECT)
 _SITU_CONTEXT_RE = re.compile(SITUATIONAL_CONTEXT)
 _OOS_RES = [(reason, re.compile(p)) for reason, p in OUT_OF_SCOPE_RULES]
+_KB_GAP_RES = [(reason, re.compile(p)) for reason, p in KB_GAP_RULES]
+_CONDITION_REPLY_RES = [re.compile(p) for p in CONDITION_REPLY_PATTERNS]
+
+# 情境建议的关键条件：位置与阶段缺一不可（知道位置才能谈打法，知道阶段才能谈节奏）。
+# 英雄是加分项——缺英雄不影响给出可执行的建议，不该因此把玩家拦下来。
+CONDITION_KEYS = ("position", "phase", "hero")
+ESSENTIAL_CONDITIONS = ("position", "phase")
+
+# 只用长度 >= 2 的英雄名做实体匹配：单字英雄名（镜、曜、铠、澜…）在普通文本里
+# 误命中概率太高，宁可不识别也不要错判。
+HERO_NAME_POOL = sorted({h for h in HERO_HINTS if len(h) >= 2}, key=len, reverse=True)
 
 # "分差过小"的判定阈值
 AMBIGUOUS_GAP = 1
@@ -74,9 +90,13 @@ class IntentResult:
     intent: str
     scores: dict[str, int] = field(default_factory=dict)
     matched: dict[str, list[str]] = field(default_factory=dict)
-    source: str = "rule"                       # rule | llm | fallback
+    source: str = "rule"                       # rule | inherit | llm | fallback
     route_state: str | None = None
     conditions: dict[str, list[str]] = field(default_factory=dict)
+    missing_conditions: list[str] = field(default_factory=list)
+    # 这轮对话此前是否已经追问过补充条件。路由层知道"哪些条件已经问过、哪些已经答过"，
+    # 模型不知道——所以要把这件事显式传给生成阶段，否则模型会自己再问一遍。
+    already_asked_conditions: bool = False
     injection: list[str] = field(default_factory=list)
     oos_reason: str | None = None
 
@@ -92,6 +112,8 @@ class IntentResult:
             "source": self.source,
             "route_state": self.route_state,
             "conditions": self.conditions,
+            "missing_conditions": self.missing_conditions,
+            "already_asked_conditions": self.already_asked_conditions,
             "injection_suspected": self.is_injection_suspected,
             "oos_reason": self.oos_reason,
         }
@@ -107,6 +129,47 @@ def _history_user_texts(history: Iterable[dict] | None) -> list[str]:
         if m.get("role") == "user" and isinstance(m.get("content"), str):
             texts.append(m["content"])
     return texts
+
+
+def is_condition_reply(raw_text: str, norm_text: str, history: list[dict] | None) -> bool:
+    """是否是在**回答上一轮的追问**（补充条件）。
+
+    这类短句既没有疑问词也没有主题词（"我玩的是悟空"），规则层原本完全没信号，
+    只能交给模型兜底分类——实测不但判成了"闲聊"，还让意图环节多花 0.8~1.2 秒。
+
+    四个必要条件（缺一不可）：
+    1. 必须有历史上下文——孤立的"我玩的是悟空"没有归属，不该擅自定性；
+    2. 必须是短句——补充条件通常就几个字；
+    3. 原文不能带问号——**这个信号比词表可靠**："我玩打野，前期该做什么？"同样以"我玩"开头，
+       但它是个真问题（这条是被单测抓出来的）；
+    4. 不能命中疑问特征词——问号之外的双保险。
+    """
+    if not history or not norm_text or len(norm_text) > 20:
+        return False
+    if any(ch in raw_text for ch in "？?"):
+        return False
+    if any(word in norm_text for word in QUESTION_PATTERNS):
+        return False
+    return any(r.search(norm_text) for r in _CONDITION_REPLY_RES)
+
+
+def is_kb_gap_question(text: str) -> str | None:
+    """问题是否落在知识库明确不覆盖的维度上（英雄级信息 / 动态数据）。
+
+    返回缺口原因标签，未命中返回 None。判定只看问题本身，与检索结果无关：
+    这类问题即使"碰巧"检索到一条半相关条目（例如"辅助"命中了"游走位职责"），
+    也不该把那条件目当成它的依据。
+    """
+    t = normalize(text)
+    if not t:
+        return None
+    for reason, pattern in _KB_GAP_RES:
+        if pattern.search(t):
+            return reason
+    for hero in HERO_NAME_POOL:
+        if normalize(hero) in t:
+            return "hero_entity"
+    return None
 
 
 def _match_oos(norm_text: str) -> tuple[str | None, list[str]]:
@@ -180,14 +243,18 @@ def classify(
     history: list[dict] | None = None,
     llm_classifier: Callable[[str, list[dict] | None], str | None] | None = None,
     inherit_intent: str | None = None,
+    prev_route_state: str | None = None,
 ) -> IntentResult:
     """对单条用户消息做意图分类。
 
     Args:
         text: 当前用户消息。
-        history: 最近若干轮对话（[{role, content}]），仅用于补充情境条件判定。
+        history: 最近若干轮对话（[{role, content}]），用于补充条件判定、
+            以及判断"是否已经追问过"。
         llm_classifier: 规则不确定时调用的兜底分类器，返回四类之一或 None。
         inherit_intent: 省略式追问时的继承意图（由调用方基于上一轮计算）。
+        prev_route_state: 上一轮的路由状态。上一轮是 need_more_info 时，
+            本轮直接按情境建议处理——这是在补条件，不该再花一次模型调用去猜。
     """
     norm_text = normalize(text)
     injection = detect_injection(text)
@@ -209,12 +276,23 @@ def classify(
             oos_reason="unsupported_instruction",
         )
 
+    # 规则补充：在补上一轮追问的条件（"我玩的是悟空"），这种短句规则层原本毫无信号
+    if scores[INTENT_SITUATIONAL] == 0 and is_condition_reply(text, norm_text, history):
+        scores[INTENT_SITUATIONAL] = SCORE_SITUATIONAL
+        matched["condition_reply"] = ["在补充上一轮追问的条件"]
+
     intent, uncertain = _pick(scores)
     source = "rule"
 
-    # 省略式追问（"那这个呢"）：单独无法判定，继承上一轮意图
-    if uncertain and inherit_intent and inherit_intent in INTENTS:
-        intent, source, uncertain = inherit_intent, "inherit", False
+    if uncertain:
+        # 优先级 1：上一轮刚问过"补充条件"，本轮几乎必然是同一情境对话的延续。
+        # 直接继承，**不调用模型**——早期版本这里会走 LLM 兜底，
+        # 实测不但把它判成了"闲聊"，还让意图环节多花 0.8~1.2 秒。
+        if prev_route_state == ROUTE_NEED_MORE_INFO:
+            intent, source, uncertain = INTENT_SITUATIONAL, "inherit", False
+        # 优先级 2：省略式追问（"那这个呢"），继承上一轮意图
+        elif inherit_intent and inherit_intent in INTENTS:
+            intent, source, uncertain = inherit_intent, "inherit", False
 
     if uncertain:
         llm_intent = None
@@ -228,17 +306,34 @@ def classify(
         else:
             intent, source = INTENT_KNOWLEDGE, "fallback"
 
-    # 情境问题：当前消息与历史里都没有位置/阶段/英雄条件 → 需要追问补充
+    # 路由状态：情境问题缺条件 → 追问；知识问题落在知识库覆盖缺口 → kb_gap
     route_state: str | None = None
-    if intent == INTENT_SITUATIONAL:
+    missing_conditions: list[str] = []
+    already_asked_conditions = False
+    if intent == INTENT_KNOWLEDGE:
+        gap_reason = is_kb_gap_question(text)
+        if gap_reason:
+            route_state = ROUTE_KB_GAP
+            matched["kb_gap_reason"] = [gap_reason]
+    elif intent == INTENT_SITUATIONAL:
         merged = dict(conditions)
         for prev in _history_user_texts(history)[-4:]:
             prev_cond = extract_conditions(prev)
             for key in merged:
                 merged[key] = sorted(set(merged[key]) | set(prev_cond[key]))
         conditions = merged
-        if not (merged["position"] or merged["phase"] or merged["hero"]):
+        missing_conditions = [k for k in CONDITION_KEYS if not merged[k]]
+
+        # 追问只在"关键条件（位置、阶段）都不具备"时触发一次。
+        # 已经追问过的对话不再机械重复同一组问题——玩家会在这种重复里感到被当成没说过话。
+        already_asked_conditions = any(
+            is_need_more_info_reply(str(m.get("content", "")))
+            for m in (history or [])
+            if isinstance(m, dict) and m.get("role") == "assistant"
+        )
+        if all(not merged[k] for k in ESSENTIAL_CONDITIONS) and not already_asked_conditions:
             route_state = ROUTE_NEED_MORE_INFO
+            matched["need_more_info_missing"] = missing_conditions
 
     return IntentResult(
         intent=intent,
@@ -247,6 +342,8 @@ def classify(
         source=source,
         route_state=route_state,
         conditions=conditions,
+        missing_conditions=missing_conditions,
+        already_asked_conditions=already_asked_conditions,
         injection=injection,
         oos_reason=oos_reason,
     )

@@ -63,6 +63,9 @@ class RetrievedDoc:
     source_title: str
     source_url: str
     collected_at: str
+    # 来源强度：direct = 该页直接写明本条内容；topic = 覆盖该主题但非逐句对应
+    source_support: str = "direct"
+    source_support_note: str = ""
     score: float = 0.0
     base_score: float = 0.0
     version_factor: float = 1.0
@@ -211,6 +214,8 @@ class KnowledgeBase:
             source_title=src.get("title", ""),
             source_url=src.get("url", ""),
             collected_at=src.get("collected_at", ""),
+            source_support=src.get("support", "direct"),
+            source_support_note=src.get("support_note", ""),
         )
 
     def _build_index(self) -> None:

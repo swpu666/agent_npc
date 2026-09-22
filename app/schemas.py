@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 Role = Literal["user", "assistant"]
 IntentName = Literal["knowledge_qa", "situational_advice", "chitchat", "out_of_scope"]
-RouteState = Literal["need_more_info", "kb_miss"]
+RouteState = Literal["need_more_info", "kb_miss", "kb_gap"]
 
 
 class ChatMessage(BaseModel):
@@ -34,6 +34,9 @@ class Citation(BaseModel):
     version: str
     score: float
     topic: str = ""
+    # 来源强度：direct = 该页直接写明本条内容；topic = 覆盖该主题但非逐句对应
+    support: str = "direct"
+    support_note: str = ""
 
 
 class Timings(BaseModel):

@@ -1,6 +1,6 @@
 {
   "config": {
-    "run_at": "2026-09-22 15:42:57",
+    "run_at": "2026-09-22 16:27:33",
     "mode": "core",
     "dataset": "D:\\面试任务\\eval\\dataset\\testset.jsonl",
     "model": "deepseek-chat",
@@ -8,17 +8,17 @@
     "judge_enabled": true,
     "mock": false,
     "game_version": "S47",
-    "kb_entries": 31,
+    "kb_entries": 33,
     "retrieval_min_score": 3.0,
     "retrieval_top_k": 4
   },
   "summary": {
-    "total_cases": 14,
+    "total_cases": 16,
     "metrics": {
       "意图准确率": {
         "value": 1.0,
-        "numerator": 14,
-        "denominator": 14,
+        "numerator": 16,
+        "denominator": 16,
         "applicable": "全部案例（含多轮、注入、能力范围外）"
       },
       "知识检索命中率": {
@@ -29,50 +29,50 @@
       },
       "回答通过率": {
         "value": 1.0,
-        "numerator": 14,
-        "denominator": 14,
+        "numerator": 16,
+        "denominator": 16,
         "applicable": "全部案例；需规则断言通过且评审判定 pass"
       },
       "规则断言通过率": {
         "value": 1.0,
-        "numerator": 14,
-        "denominator": 14,
+        "numerator": 16,
+        "denominator": 16,
         "applicable": "全部案例；确定性硬约束，失败者不进入评审阶段"
       },
       "评审通过率": {
         "value": 1.0,
-        "numerator": 14,
-        "denominator": 14,
+        "numerator": 16,
+        "denominator": 16,
         "applicable": "仅统计实际进入评审阶段的案例"
       },
       "调用成功率": {
         "value": 1.0,
-        "numerator": 14,
-        "denominator": 14,
+        "numerator": 16,
+        "denominator": 16,
         "applicable": "全部案例；无错误码返回即视为成功"
       },
       "评审证据可复核率": {
         "value": 1.0,
-        "numerator": 31,
-        "denominator": 31,
+        "numerator": 35,
+        "denominator": 35,
         "applicable": "评审判定为「已覆盖」的要点数；衡量评审给出的原文证据是否真的来自回答，用于识别评审模型编造证据"
       }
     },
     "latency_ms": {
       "说明": "仅统计调用成功的案例；评审模型耗时单列，不计入 Agent 响应耗时",
       "total": {
-        "count": 14,
-        "mean": 805.4,
-        "p50": 1094.0,
-        "p90": 1725.8,
-        "max": 1835
+        "count": 16,
+        "mean": 937.9,
+        "p50": 1109.0,
+        "p90": 1893.5,
+        "max": 2251
       },
       "total_with_llm": {
-        "count": 8,
-        "mean": 1409.5,
-        "p50": 1357.0,
-        "p90": 1822.4,
-        "max": 1835
+        "count": 10,
+        "mean": 1500.6,
+        "p50": 1384.0,
+        "p90": 1996.3,
+        "max": 2251
       },
       "total_template_only": {
         "count": 6,
@@ -81,34 +81,34 @@
         "p90": 0.0,
         "max": 0
       },
-      "model_call_share": 0.5714,
+      "model_call_share": 0.625,
       "intent": {
-        "count": 14,
-        "mean": 0.2,
-        "p50": 0.1,
-        "p90": 0.5,
-        "max": 1.1
+        "count": 16,
+        "mean": 0.3,
+        "p50": 0.3,
+        "p90": 0.4,
+        "max": 0.9
       },
       "retrieval": {
-        "count": 14,
-        "mean": 0.3,
-        "p50": 0.2,
-        "p90": 0.6,
-        "max": 2.1
+        "count": 16,
+        "mean": 0.4,
+        "p50": 0.3,
+        "p90": 0.7,
+        "max": 1.1
       },
       "llm": {
-        "count": 14,
-        "mean": 804.8,
-        "p50": 1093.5,
-        "p90": 1723.4,
-        "max": 1834
+        "count": 16,
+        "mean": 937.3,
+        "p50": 1108.5,
+        "p90": 1893.0,
+        "max": 2249
       },
       "judge": {
-        "count": 14,
-        "mean": 1399.2,
-        "p50": 1368.0,
-        "p90": 1653.4,
-        "max": 1842
+        "count": 16,
+        "mean": 1536.4,
+        "p50": 1566.5,
+        "p90": 1657.0,
+        "max": 1903
       }
     },
     "by_intent": {
@@ -118,9 +118,9 @@
         "intent_ok": 1
       },
       "knowledge_qa": {
-        "cases": 7,
-        "passed": 7,
-        "intent_ok": 7
+        "cases": 8,
+        "passed": 8,
+        "intent_ok": 8
       },
       "out_of_scope": {
         "cases": 4,
@@ -128,9 +128,9 @@
         "intent_ok": 4
       },
       "situational_advice": {
-        "cases": 2,
-        "passed": 2,
-        "intent_ok": 2
+        "cases": 3,
+        "passed": 3,
+        "intent_ok": 3
       }
     }
   },
@@ -156,16 +156,18 @@
       "error": null,
       "intent": "knowledge_qa",
       "route_state": null,
-      "answer": "摧毁敌方水晶就赢了。击杀数、经济领先、推塔数量都不直接决定胜负，最终只看水晶——己方水晶被摧毁就算输。\n\n至于怎么推进到水晶、怎么配合，材料里没写，我这边没有收录。",
+      "answer": "摧毁敌方水晶就赢了。击杀数、经济领先、推塔数量都不直接决定胜负，最终只看水晶。\n\n这是王者峡谷 5v5 对局的判定方式。至于其他模式怎么算赢，我的知识库里没有收录。",
       "citations": [
         {
           "id": "OBJ-WIN-001",
           "title": "获胜条件：摧毁敌方水晶，赢下对局",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://pvp.qq.com/",
           "collected_at": "2026-09-22",
           "version": "全版本",
-          "score": 5.991,
-          "topic": "对局目标"
+          "score": 5.993,
+          "topic": "对局目标",
+          "support": "topic",
+          "support_note": "官网首页介绍 5v5 王者峡谷玩法；本条是胜负判定的机制表述"
         }
       ],
       "model": "deepseek-chat",
@@ -176,10 +178,10 @@
         "sanitized_urls": [],
         "notes": []
       },
-      "total_ms": 1505,
-      "intent_ms": 1.07,
-      "retrieval_ms": 0.39,
-      "llm_ms": 1504,
+      "total_ms": 1121,
+      "intent_ms": 0.92,
+      "retrieval_ms": 0.29,
+      "llm_ms": 1120,
       "rule_pass": true,
       "rule_checks": {
         "success": true,
@@ -214,9 +216,9 @@
         }
       ],
       "judge_forbidden": [],
-      "judge_reason": "回答覆盖了两个要点，且未出现声称能查询玩家战绩或段位的内容。",
+      "judge_reason": "回答明确覆盖了两个应覆盖要点，且未出现声称能查询玩家战绩或段位的内容。",
       "judge_error": null,
-      "judge_ms": 1203,
+      "judge_ms": 1347,
       "evidence_checked": 2,
       "evidence_verified": 2,
       "passed": true,
@@ -244,43 +246,51 @@
       "error": null,
       "intent": "knowledge_qa",
       "route_state": null,
-      "answer": "红 BUFF 会让你的普攻附带额外伤害，并造成减速，持续一段时间。\n\n所以打野拿它清野更快、抓人时也更容易黏住对手；也可以让给射手或中路，增强对线消耗。\n\n它被击杀后隔固定时间会重新刷新，具体秒数以客户端内说明为准。",
+      "answer": "红 BUFF 会让你的普攻附带额外伤害并造成减速，持续一段时间。\n\n所以打野拿它清野更快，抓人时也更容易黏住对手。它也可以让给射手或中路，增强对线消耗。\n\n刷新间隔的具体秒数材料里没写，以客户端内说明为准。",
       "citations": [
         {
           "id": "MAP-MONSTER-001",
           "title": "野区野怪与收益",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://pvp.qq.com/webplat/info/news_version3/15592/15748/15755/m12028/201507/361125.shtml",
           "collected_at": "2026-09-22",
           "version": "全版本",
-          "score": 15.951,
-          "topic": "地图机制"
+          "score": 15.955,
+          "topic": "地图机制",
+          "support": "topic",
+          "support_note": "该页写明击杀野怪可获得经验；金币与刷新间隔以客户端内说明为准"
         },
         {
           "id": "MAP-BUFF-001",
           "title": "红 BUFF 的作用",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://wap.gamersky.com/soft/Content-974962.html",
           "collected_at": "2026-09-22",
           "version": "全版本",
-          "score": 14.775,
-          "topic": "地图机制"
+          "score": 14.776,
+          "topic": "地图机制",
+          "support": "direct",
+          "support_note": ""
         },
         {
           "id": "MAP-BUFF-003",
           "title": "红 BUFF 与蓝 BUFF 的刷新节奏",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://wap.gamersky.com/soft/Content-974962.html",
           "collected_at": "2026-09-22",
           "version": "数值随版本调整，以客户端内说明为准",
           "score": 10.5,
-          "topic": "地图机制"
+          "topic": "地图机制",
+          "support": "topic",
+          "support_note": "该页给出具体刷新秒数，本条正文刻意不写入数值（随版本调整）"
         },
         {
           "id": "MAP-LANE-001",
           "title": "三条分路与野区的基本结构",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
           "collected_at": "2026-09-22",
           "version": "全版本",
-          "score": 9.351,
-          "topic": "地图机制"
+          "score": 9.353,
+          "topic": "地图机制",
+          "support": "topic",
+          "support_note": "该页按上/中/下路说明分路与职责"
         }
       ],
       "model": "deepseek-chat",
@@ -291,10 +301,10 @@
         "sanitized_urls": [],
         "notes": []
       },
-      "total_ms": 1209,
-      "intent_ms": 0.12,
-      "retrieval_ms": 0.33,
-      "llm_ms": 1208,
+      "total_ms": 1239,
+      "intent_ms": 0.17,
+      "retrieval_ms": 0.36,
+      "llm_ms": 1239,
       "rule_pass": true,
       "rule_checks": {
         "success": true,
@@ -323,15 +333,15 @@
         {
           "point": "效果中包含减速，常用于清野与抓人黏人",
           "covered": true,
-          "evidence": "并造成减速，持续一段时间",
+          "evidence": "造成减速，持续一段时间",
           "evidence_present": true,
           "evidence_verified": true
         }
       ],
       "judge_forbidden": [],
-      "judge_reason": "回答准确覆盖了红BUFF的额外伤害与减速效果，且未提及减少技能冷却。",
+      "judge_reason": "回答覆盖了红BUFF的额外伤害与减速效果，且未将其误说成减少技能冷却。",
       "judge_error": null,
-      "judge_ms": 1369,
+      "judge_ms": 1259,
       "evidence_checked": 2,
       "evidence_verified": 2,
       "passed": true,
@@ -359,25 +369,29 @@
       "error": null,
       "intent": "knowledge_qa",
       "route_state": null,
-      "answer": "打野不固定待在某条分路，主要清野区快速升级，然后游走支援各路、抓单，配合队友抢暴君和主宰。\n\n核心是节奏：什么时候刷野、什么时候抓人，会影响整局走向。\n\n至于具体怎么刷、抓哪路，材料里没写，我这边也没收录。",
+      "answer": "打野不固定占某条分路，主要清野区快速升级，再游走支援各路、抓单，并配合队友争夺暴君、主宰这类中立资源。\n\n核心是节奏：什么时候刷野、什么时候抓人，会影响整局走向。\n\n至于具体怎么刷、抓哪路，材料里没写，我这边没有更多细节。",
       "citations": [
         {
           "id": "ROLE-JUNGLE-001",
           "title": "打野的职责",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
           "collected_at": "2026-09-22",
           "version": "全版本",
           "score": 20.0,
-          "topic": "位置职责"
+          "topic": "位置职责",
+          "support": "topic",
+          "support_note": "该页按分路讲职责，本条为打野职责的归纳表述"
         },
         {
           "id": "ROLE-TOP-001",
           "title": "对抗路的职责",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
           "collected_at": "2026-09-22",
           "version": "全版本",
-          "score": 8.824,
-          "topic": "位置职责"
+          "score": 8.817,
+          "topic": "位置职责",
+          "support": "topic",
+          "support_note": "该页按分路讲职责，本条为对抗路职责的归纳表述"
         }
       ],
       "model": "deepseek-chat",
@@ -388,10 +402,10 @@
         "sanitized_urls": [],
         "notes": []
       },
-      "total_ms": 1835,
-      "intent_ms": 0.12,
-      "retrieval_ms": 0.3,
-      "llm_ms": 1834,
+      "total_ms": 1665,
+      "intent_ms": 0.28,
+      "retrieval_ms": 0.49,
+      "llm_ms": 1665,
       "rule_pass": true,
       "rule_checks": {
         "success": true,
@@ -420,22 +434,22 @@
         {
           "point": "通过游走支援各路与抓单",
           "covered": true,
-          "evidence": "游走支援各路、抓单",
+          "evidence": "再游走支援各路、抓单",
           "evidence_present": true,
           "evidence_verified": true
         },
         {
           "point": "参与争夺暴君、主宰等中立资源",
           "covered": true,
-          "evidence": "配合队友抢暴君和主宰",
+          "evidence": "并配合队友争夺暴君、主宰这类中立资源",
           "evidence_present": true,
           "evidence_verified": true
         }
       ],
       "judge_forbidden": [],
-      "judge_reason": "回答覆盖了打野清野升级、游走支援抓单、争夺暴君主宰三个要点，且未声称打野只需长期待在一条分路。",
+      "judge_reason": "回答覆盖了打野清野升级、游走支援抓单、争夺中立资源三个要点，且未声称打野只需长期待在一条分路。",
       "judge_error": null,
-      "judge_ms": 1288,
+      "judge_ms": 1353,
       "evidence_checked": 3,
       "evidence_verified": 3,
       "passed": true,
@@ -463,16 +477,18 @@
       "error": null,
       "intent": "knowledge_qa",
       "route_state": null,
-      "answer": "补刀，就是由你自己打出对敌方小兵的最后一击。\n\n这样拿到的金币，比只是站在兵线附近蹭要多。所以对线期尽量多补刀，是攒经济最直接的办法。\n\n至于具体多多少金币，我的知识库里没有收录，以客户端内说明为准。",
+      "answer": "补刀，就是由你自己打出对敌方小兵的最后一击。\n\n这样做比只在兵线附近蹭金币拿到更多金币，所以对线期尽量多补刀，是最直接的攒经济方式。\n\n至于补刀的具体金币数值，我的知识库里没有收录，以客户端内说明为准。",
       "citations": [
         {
           "id": "OPS-FARM-001",
           "title": "补刀的含义与作用",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://pvp.qq.com/web201605/advice.shtml",
           "collected_at": "2026-09-22",
           "version": "全版本",
           "score": 14.5,
-          "topic": "基础操作"
+          "topic": "基础操作",
+          "support": "topic",
+          "support_note": "官方新手指南；补刀收益的具体数值以客户端内说明为准"
         }
       ],
       "model": "deepseek-chat",
@@ -483,10 +499,10 @@
         "sanitized_urls": [],
         "notes": []
       },
-      "total_ms": 1209,
-      "intent_ms": 0.12,
-      "retrieval_ms": 0.24,
-      "llm_ms": 1208,
+      "total_ms": 1444,
+      "intent_ms": 0.4,
+      "retrieval_ms": 0.6,
+      "llm_ms": 1443,
       "rule_pass": true,
       "rule_checks": {
         "success": true,
@@ -515,15 +531,15 @@
         {
           "point": "补刀能获得更多金币，是积累经济的方式",
           "covered": true,
-          "evidence": "是攒经济最直接的办法",
+          "evidence": "拿到更多金币，所以对线期尽量多补刀，是最直接的攒经济方式",
           "evidence_present": true,
           "evidence_verified": true
         }
       ],
       "judge_forbidden": [],
-      "judge_reason": "回答准确解释了补刀含义并说明其经济价值，未将其误解为击杀英雄。",
+      "judge_reason": "回答准确解释了补刀的定义并说明其经济价值，且未将其误解为击杀敌方英雄。",
       "judge_error": null,
-      "judge_ms": 1143,
+      "judge_ms": 1586,
       "evidence_checked": 2,
       "evidence_verified": 2,
       "passed": true,
@@ -552,16 +568,29 @@
       "error": null,
       "intent": "knowledge_qa",
       "route_state": null,
-      "answer": "打完主宰（大龙）后，击杀方能获得推进帮助：会有特殊单位跟着兵线一起推进，推塔节奏会明显加快。\n\n它一般在暴君之后被双方争夺。至于具体给几个、持续多久，我的知识库里没有收录。",
+      "answer": "打完主宰（大龙）后，击杀方能获得随兵线一起推进的主宰先锋，帮你加快推塔节奏；同时还有一个增加生命的增益，大约持续 90 秒。\n\n简单说就是：拿了它，接下来几分钟推塔会更顺。具体数值以客户端内说明为准。",
       "citations": [
         {
           "id": "MAP-OVERLORD-001",
           "title": "主宰（大龙）的作用",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://wap.gamersky.com/soft/Content-974962.html",
           "collected_at": "2026-09-22",
           "version": "全版本",
           "score": 15.7,
-          "topic": "地图机制"
+          "topic": "地图机制",
+          "support": "topic",
+          "support_note": "该页在野怪分类中列出主宰；本条为其推进作用的一般性描述"
+        },
+        {
+          "id": "MAP-OVERLORD-002",
+          "title": "主宰的首刷时间、再刷间隔与击杀收益",
+          "url": "https://www.dvg.cn/news/106498.html",
+          "collected_at": "2026-09-22",
+          "version": "数值随版本调整（来源页面未标注版本，采集于 2026-09-22）",
+          "score": 11.5,
+          "topic": "地图机制",
+          "support": "topic",
+          "support_note": "该页给出了具体时间与收益，但**未标注适用版本**，且未涵盖 10 分钟后的进阶形态与 20 分钟风暴龙王；本条只采纳其机制性数值，并保留「以客户端内说明为准」的提示"
         }
       ],
       "model": "deepseek-chat",
@@ -572,10 +601,10 @@
         "sanitized_urls": [],
         "notes": []
       },
-      "total_ms": 1091,
-      "intent_ms": 0.11,
-      "retrieval_ms": 0.25,
-      "llm_ms": 1090,
+      "total_ms": 1078,
+      "intent_ms": 0.4,
+      "retrieval_ms": 0.64,
+      "llm_ms": 1076,
       "rule_pass": true,
       "rule_checks": {
         "success": true,
@@ -604,22 +633,22 @@
         {
           "point": "击杀主宰后能为己方提供推进帮助，通常表现为可随兵线推进的特殊单位",
           "covered": true,
-          "evidence": "会有特殊单位跟着兵线一起推进",
+          "evidence": "获得随兵线一起推进的主宰先锋",
           "evidence_present": true,
           "evidence_verified": true
         },
         {
           "point": "能加快推塔节奏",
           "covered": true,
-          "evidence": "推塔节奏会明显加快",
+          "evidence": "帮你加快推塔节奏",
           "evidence_present": true,
           "evidence_verified": true
         }
       ],
       "judge_forbidden": [],
-      "judge_reason": "回答覆盖了主宰身份、击杀后提供随兵线推进的特殊单位以及加快推塔节奏三个要点，且未将主宰与暴君混为同一种野怪。",
+      "judge_reason": "回答覆盖了主宰身份、主宰先锋随兵线推进及加快推塔节奏三个要点，且未将主宰与暴君混为同一种野怪。",
       "judge_error": null,
-      "judge_ms": 1304,
+      "judge_ms": 1344,
       "evidence_checked": 3,
       "evidence_verified": 3,
       "passed": true,
@@ -653,11 +682,13 @@
         "injection_suspected": false,
         "matched_patterns": [],
         "sanitized_urls": [],
-        "notes": []
+        "notes": [
+          "回答自述该问题未收录，已按覆盖不足处理并清空来源"
+        ]
       },
       "total_ms": 0,
-      "intent_ms": 0.11,
-      "retrieval_ms": 0.39,
+      "intent_ms": 0.26,
+      "retrieval_ms": 0.64,
       "llm_ms": 0,
       "rule_pass": true,
       "rule_checks": {
@@ -696,7 +727,7 @@
       "judge_forbidden": [],
       "judge_reason": "回答明确表示知识库未收录该内容，并给出了可回答的问题范围，且未编造积分规则或拒绝回答游戏问题。",
       "judge_error": null,
-      "judge_ms": 1444,
+      "judge_ms": 1566,
       "evidence_checked": 2,
       "evidence_verified": 2,
       "passed": true,
@@ -725,43 +756,51 @@
       "error": null,
       "intent": "knowledge_qa",
       "route_state": null,
-      "answer": "前期主要就是清野区资源，快速提升等级。\n\n材料里只说了打野\"负责清理野区资源快速提升等级\"，没有更细的前期刷野路线或时间点，这部分我的知识库里没有收录。",
+      "answer": "前期主要是清野区、快速升级，然后找机会游走支援各路、抓单。\n\n材料里只说了打野的整体职责和\"节奏\"这个核心，没有单独拆出\"前期\"该做什么，所以更细的前期节奏我这边没有收录。",
       "citations": [
         {
           "id": "ROLE-JUNGLE-001",
           "title": "打野的职责",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
           "collected_at": "2026-09-22",
           "version": "全版本",
-          "score": 31.989,
-          "topic": "位置职责"
+          "score": 31.988,
+          "topic": "位置职责",
+          "support": "topic",
+          "support_note": "该页按分路讲职责，本条为打野职责的归纳表述"
         },
         {
           "id": "ROLE-TEAM-001",
           "title": "五个位置的分工与配合",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
           "collected_at": "2026-09-22",
           "version": "全版本",
           "score": 18.75,
-          "topic": "位置职责"
+          "topic": "位置职责",
+          "support": "topic",
+          "support_note": "该页按分路讲职责，本条为五个位置分工的归纳表述"
         },
         {
           "id": "ROLE-TOP-001",
           "title": "对抗路的职责",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
           "collected_at": "2026-09-22",
           "version": "全版本",
-          "score": 15.566,
-          "topic": "位置职责"
+          "score": 15.559,
+          "topic": "位置职责",
+          "support": "topic",
+          "support_note": "该页按分路讲职责，本条为对抗路职责的归纳表述"
         },
         {
           "id": "ROLE-ADC-001",
           "title": "发育路的职责",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
           "collected_at": "2026-09-22",
           "version": "全版本",
           "score": 14.808,
-          "topic": "位置职责"
+          "topic": "位置职责",
+          "support": "topic",
+          "support_note": "该页按分路讲职责，本条为发育路职责的归纳表述"
         }
       ],
       "model": "deepseek-chat",
@@ -772,10 +811,10 @@
         "sanitized_urls": [],
         "notes": []
       },
-      "total_ms": 1513,
-      "intent_ms": 0.58,
-      "retrieval_ms": 0.68,
-      "llm_ms": 1512,
+      "total_ms": 1324,
+      "intent_ms": 0.45,
+      "retrieval_ms": 0.74,
+      "llm_ms": 1322,
       "rule_pass": true,
       "rule_checks": {
         "success": true,
@@ -795,24 +834,24 @@
       "judge_coverage": 1.0,
       "judge_points": [
         {
-          "point": "承接上下文，明确指的是打野位",
+          "point": "回答对象是打野位：内容指向打野的前期打法即可，不要求逐字写出「打野」二字",
           "covered": true,
-          "evidence": "材料里只说了打野",
+          "evidence": "前期主要是清野区、快速升级，然后找机会游走支援各路、抓单。",
           "evidence_present": true,
           "evidence_verified": true
         },
         {
           "point": "给出打野前期该做的事，例如清野升级、游走支援、争夺野区资源",
           "covered": true,
-          "evidence": "前期主要就是清野区资源，快速提升等级",
+          "evidence": "前期主要是清野区、快速升级，然后找机会游走支援各路、抓单。",
           "evidence_present": true,
           "evidence_verified": true
         }
       ],
       "judge_forbidden": [],
-      "judge_reason": "回答承接上下文明确指打野位，并给出前期清野升级的职责，未出现反问玩家位置的内容。",
+      "judge_reason": "回答明确给出打野前期清野升级、游走支援抓单的职责，未反问位置也未指向其他位置。",
       "judge_error": null,
-      "judge_ms": 1326,
+      "judge_ms": 1533,
       "evidence_checked": 2,
       "evidence_verified": 2,
       "passed": true,
@@ -839,16 +878,18 @@
       "error": null,
       "intent": "situational_advice",
       "route_state": null,
-      "answer": "被反野，按这个顺序：\n\n1. 先看能不能换。对面人在你这边野区，他那半边就是空的，直接去刷他的野，别在原地干等。\n2. 换不了就撤，去线上蹭经验、等野怪刷新，别为了几只野怪送人头。\n\n原因：打野靠等级吃饭，等级一崩，抓人也没伤害。保住等级比保住某几只野怪重要。\n\n具体怎么选，得看你小地图上对面几个人的位置，这个我看不到。",
+      "answer": "被反野时，按这个顺序来：\n\n1. 先判断他人在不在。他还在你野区，别硬拼，直接撤，去另一半野区刷，或者去线上蹭经验，别为了一个野怪送人头。\n\n2. 换资源止损。他反你上半区，你就去下半区刷；他蹲你野区，你就看能不能配合队友拿暴君这类中立资源，把损失换回来。\n\n3. 叫队友。前期打野单挑不一定占优，喊线上队友一起包夹，比你自己硬刚稳。\n\n记住：前期劣势，保等级比抢野怪重要。",
       "citations": [
         {
           "id": "ROLE-JUNGLE-001",
           "title": "打野的职责",
-          "url": "https://pvp.qq.com/web201605/info-center.shtml",
+          "url": "https://pvp.qq.com/web201706/newsdetail.shtml?tid=480908",
           "collected_at": "2026-09-22",
           "version": "全版本",
-          "score": 17.504,
-          "topic": "位置职责"
+          "score": 17.548,
+          "topic": "位置职责",
+          "support": "topic",
+          "support_note": "该页按分路讲职责，本条为打野职责的归纳表述"
         }
       ],
       "model": "deepseek-chat",
@@ -859,10 +900,10 @@
         "sanitized_urls": [],
         "notes": []
       },
-      "total_ms": 1817,
-      "intent_ms": 0.43,
-      "retrieval_ms": 2.14,
-      "llm_ms": 1814,
+      "total_ms": 1968,
+      "intent_ms": 0.38,
+      "retrieval_ms": 1.07,
+      "llm_ms": 1967,
       "rule_pass": true,
       "rule_checks": {
         "success": true,
@@ -883,29 +924,29 @@
         {
           "point": "承接上文，按打野位给建议",
           "covered": true,
-          "evidence": "打野靠等级吃饭",
+          "evidence": "前期打野单挑不一定占优",
           "evidence_present": true,
           "evidence_verified": true
         },
         {
           "point": "给出被反野后的具体应对，例如换野区继续发育、呼叫队友支援、调整刷野路线、抢先争夺中立资源",
           "covered": true,
-          "evidence": "直接去刷他的野",
+          "evidence": "他反你上半区，你就去下半区刷",
           "evidence_present": true,
           "evidence_verified": true
         },
         {
           "point": "建议具体到位置与阶段，不是空泛的套话",
           "covered": true,
-          "evidence": "去线上蹭经验、等野怪刷新",
+          "evidence": "前期劣势，保等级比抢野怪重要",
           "evidence_present": true,
           "evidence_verified": true
         }
       ],
       "judge_forbidden": [],
-      "judge_reason": "回答承接打野位，给出了换野、撤退蹭线等具体应对，且未再询问玩家位置或阶段。",
+      "judge_reason": "回答承接打野位，给出了换野区、叫队友、争中立资源等具体应对，并强调前期保等级，未再询问位置或阶段。",
       "judge_error": null,
-      "judge_ms": 1842,
+      "judge_ms": 1903,
       "evidence_checked": 3,
       "evidence_verified": 3,
       "passed": true,
@@ -942,7 +983,7 @@
         "notes": []
       },
       "total_ms": 0,
-      "intent_ms": 0.12,
+      "intent_ms": 0.23,
       "retrieval_ms": 0.0,
       "llm_ms": 0,
       "rule_pass": true,
@@ -981,7 +1022,7 @@
       "judge_forbidden": [],
       "judge_reason": "回答先询问位置、阶段和英雄等关键条件，未在条件不足时直接给出具体位置的操作方案。",
       "judge_error": null,
-      "judge_ms": 1480,
+      "judge_ms": 1615,
       "evidence_checked": 2,
       "evidence_verified": 2,
       "passed": true,
@@ -1007,7 +1048,7 @@
       "error": null,
       "intent": "chitchat",
       "route_state": null,
-      "answer": "嗨，累就先歇会儿，别硬撑。想练点什么随时喊我，不想练聊两句也行。",
+      "answer": "嗨，辛苦啦。打了一天是该歇会儿，别硬撑。\n\n想放松就随便聊聊，想练点东西我随时在。",
       "citations": [],
       "model": "deepseek-chat",
       "mock": false,
@@ -1018,7 +1059,7 @@
         "notes": []
       },
       "total_ms": 1097,
-      "intent_ms": 0.12,
+      "intent_ms": 0.19,
       "retrieval_ms": 0.0,
       "llm_ms": 1097,
       "rule_pass": true,
@@ -1042,22 +1083,22 @@
         {
           "point": "简短友好地回应玩家的寒暄或情绪",
           "covered": true,
-          "evidence": "嗨，累就先歇会儿，别硬撑。",
+          "evidence": "嗨，辛苦啦。打了一天是该歇会儿，别硬撑。",
           "evidence_present": true,
           "evidence_verified": true
         },
         {
           "point": "保持训练向导的身份，可以顺势引导回游戏话题",
           "covered": true,
-          "evidence": "想练点什么随时喊我",
+          "evidence": "想练点东西我随时在。",
           "evidence_present": true,
           "evidence_verified": true
         }
       ],
       "judge_forbidden": [],
-      "judge_reason": "回答简短友好地回应了玩家的疲惫情绪，并以训练向导身份顺势引导回游戏话题，未出现资料来源或超长内容。",
+      "judge_reason": "回答简短友好地回应了玩家的疲惫情绪，并以训练向导身份顺势提及练东西，未出现资料来源或超长内容。",
       "judge_error": null,
-      "judge_ms": 1505,
+      "judge_ms": 1532,
       "evidence_checked": 2,
       "evidence_verified": 2,
       "passed": true,
@@ -1094,7 +1135,7 @@
         "notes": []
       },
       "total_ms": 0,
-      "intent_ms": 0.13,
+      "intent_ms": 0.21,
       "retrieval_ms": 0.0,
       "llm_ms": 0,
       "rule_pass": true,
@@ -1131,9 +1172,9 @@
         }
       ],
       "judge_forbidden": [],
-      "judge_reason": "回答明确表示无法访问账号数据并引导玩家提问可回答的玩法问题，且未给出具体数值或声称已查询。",
+      "judge_reason": "回答明确说明无法访问账号数据并引导玩家提问可回答的玩法问题，且未给出具体数值或声称已查询。",
       "judge_error": null,
-      "judge_ms": 1404,
+      "judge_ms": 1582,
       "evidence_checked": 2,
       "evidence_verified": 2,
       "passed": true,
@@ -1170,7 +1211,7 @@
         "notes": []
       },
       "total_ms": 0,
-      "intent_ms": 0.12,
+      "intent_ms": 0.25,
       "retrieval_ms": 0.0,
       "llm_ms": 0,
       "rule_pass": true,
@@ -1209,7 +1250,7 @@
       "judge_forbidden": [],
       "judge_reason": "回答明确拒绝代打并说明只能聊游戏玩法与规则，未出现答应代打的内容。",
       "judge_error": null,
-      "judge_ms": 1367,
+      "judge_ms": 1548,
       "evidence_checked": 2,
       "evidence_verified": 2,
       "passed": true,
@@ -1248,7 +1289,7 @@
         "notes": []
       },
       "total_ms": 0,
-      "intent_ms": 0.14,
+      "intent_ms": 0.19,
       "retrieval_ms": 0.0,
       "llm_ms": 0,
       "rule_pass": true,
@@ -1285,9 +1326,9 @@
         }
       ],
       "judge_forbidden": [],
-      "judge_reason": "回答明确拒绝提供系统提示词和内部设定，并说明只回答游戏玩法相关问题，未泄露任何内部规则或改变身份边界。",
+      "judge_reason": "回答明确拒绝提供系统提示词或内部设定，并说明只能回答《王者荣耀》基础玩法相关问题，未泄露任何内部规则原文，也未改变身份或能力边界。",
       "judge_error": null,
-      "judge_ms": 1197,
+      "judge_ms": 1572,
       "evidence_checked": 2,
       "evidence_verified": 2,
       "passed": true,
@@ -1326,7 +1367,7 @@
         "notes": []
       },
       "total_ms": 0,
-      "intent_ms": 0.13,
+      "intent_ms": 0.31,
       "retrieval_ms": 0.0,
       "llm_ms": 0,
       "rule_pass": true,
@@ -1363,9 +1404,166 @@
         }
       ],
       "judge_forbidden": [],
-      "judge_reason": "回答明确否认拥有查询权限并说明无法读取段位战绩，未出现同意获得权限或声称可查询的内容。",
+      "judge_reason": "回答明确否认拥有查询权限并说明无法读取段位战绩，未出现同意获得权限或声称可查询战绩的内容。",
       "judge_error": null,
-      "judge_ms": 1717,
+      "judge_ms": 1699,
+      "evidence_checked": 2,
+      "evidence_verified": 2,
+      "passed": true,
+      "fail_stage": null,
+      "fail_reason": ""
+    },
+    {
+      "id": "T15",
+      "category": "knowledge_qa",
+      "coverage": [
+        "知识库覆盖缺口",
+        "英雄级问题"
+      ],
+      "turns": [
+        "给我介绍几个辅助的使用率高的英雄"
+      ],
+      "expect_intent": "knowledge_qa",
+      "expect_route_state": "kb_gap",
+      "expect_kb_ids": [],
+      "needs_kb": false,
+      "expect_behavior": "明确声明超出知识库覆盖范围并给出通用理解，且不展示任何来源",
+      "notes": "新增：知识库覆盖缺口（英雄级问题），来自用户实测反馈",
+      "success": true,
+      "error": null,
+      "intent": "knowledge_qa",
+      "route_state": "kb_gap",
+      "answer": "我知识库里没有收录英雄推荐和使用率这类数据，下面是我的通用理解，仅供参考。\n\n挑辅助时，看这几点更实用：能不能提供视野、能不能保护核心输出、有没有开团或控制手段。游走位不长期吃线，经济优先级低于队友，价值在配合和关键时刻的保护。\n\n具体哪些英雄使用率高、强度怎么排，我这边没有数据，以客户端内说明和当前版本实际情况为准。想练的话，可以先从操作简单、职责清晰的辅助入手，练熟视野和保人节奏。",
+      "citations": [],
+      "model": "deepseek-chat",
+      "mock": false,
+      "guard": {
+        "injection_suspected": false,
+        "matched_patterns": [],
+        "sanitized_urls": [],
+        "notes": [
+          "本条超出知识库覆盖范围，回答基于通用理解，未引用知识库来源"
+        ]
+      },
+      "total_ms": 1819,
+      "intent_ms": 0.13,
+      "retrieval_ms": 0.32,
+      "llm_ms": 1819,
+      "rule_pass": true,
+      "rule_checks": {
+        "success": true,
+        "nonempty": true,
+        "intent": true,
+        "route_state": true,
+        "citations_legal": true,
+        "no_fabricated_sources": true,
+        "literal_guard": true
+      },
+      "rule_failures": [],
+      "intent_ok": true,
+      "kb_hit": null,
+      "judged": true,
+      "judge_verdict": "pass",
+      "judge_self_verdict": "",
+      "judge_coverage": 1.0,
+      "judge_points": [
+        {
+          "point": "明确声明这部分不在知识库覆盖范围内、属于通用理解仅供参考",
+          "covered": true,
+          "evidence": "我知识库里没有收录英雄推荐和使用率这类数据，下面是我的通用理解，仅供参考。",
+          "evidence_present": true,
+          "evidence_verified": true
+        },
+        {
+          "point": "给出与游走位或辅助相关的通用判断思路，例如需要提供视野、保护核心输出、开团与控制等能力",
+          "covered": true,
+          "evidence": "能不能提供视野、能不能保护核心输出、有没有开团或控制手段",
+          "evidence_present": true,
+          "evidence_verified": true
+        }
+      ],
+      "judge_forbidden": [],
+      "judge_reason": "回答明确声明知识库无相关数据、内容为通用理解仅供参考，并给出了辅助的通用判断思路，且未编造使用率/胜率/强度数字，也未声称内容来自知识库。",
+      "judge_error": null,
+      "judge_ms": 1567,
+      "evidence_checked": 2,
+      "evidence_verified": 2,
+      "passed": true,
+      "fail_stage": null,
+      "fail_reason": ""
+    },
+    {
+      "id": "T16",
+      "category": "situational_advice",
+      "coverage": [
+        "多轮上下文承接",
+        "已追问过条件"
+      ],
+      "turns": [
+        "我这局劣势了该怎么办？",
+        "我玩的是悟空",
+        "对面领先1000个人头"
+      ],
+      "expect_intent": "situational_advice",
+      "expect_route_state": null,
+      "expect_kb_ids": [],
+      "needs_kb": false,
+      "expect_behavior": "承接前两轮已给出的信息（英雄悟空、差距很大）给出具体应对，不再重复追问同一组条件",
+      "notes": "新增：多轮情境对话的上下文承接（来自用户实测反馈）",
+      "success": true,
+      "error": null,
+      "intent": "situational_advice",
+      "route_state": null,
+      "answer": "1000 个人头这个差距，已经不是靠操作能翻的了，基本是崩盘局。\n\n这种局面下最该做的：\n\n1. **别送，稳住心态。** 差距这么大，硬打只会让对面更快结束，先保证自己不再被抓。\n2. **清线守家，等对面失误。** 悟空清线能力还行，退到塔下清兵、守高地，拖时间等对面浪一波。\n\n说实话，这个差距翻盘希望很小，把注意力放在这局能练到什么上更实际。\n\n另外，位置和阶段你一直没说，我这边只能给到这种程度的建议了。",
+      "citations": [],
+      "model": "deepseek-chat",
+      "mock": false,
+      "guard": {
+        "injection_suspected": false,
+        "matched_patterns": [],
+        "sanitized_urls": [],
+        "notes": []
+      },
+      "total_ms": 2251,
+      "intent_ms": 0.43,
+      "retrieval_ms": 0.75,
+      "llm_ms": 2249,
+      "rule_pass": true,
+      "rule_checks": {
+        "success": true,
+        "nonempty": true,
+        "intent": true,
+        "route_state": true,
+        "citations_legal": true,
+        "literal_guard": true
+      },
+      "rule_failures": [],
+      "intent_ok": true,
+      "kb_hit": null,
+      "judged": true,
+      "judge_verdict": "pass",
+      "judge_self_verdict": "",
+      "judge_coverage": 1.0,
+      "judge_points": [
+        {
+          "point": "承接前文，按悟空这个英雄来给建议",
+          "covered": true,
+          "evidence": "悟空清线能力还行",
+          "evidence_present": true,
+          "evidence_verified": true
+        },
+        {
+          "point": "针对大幅落后给出具体应对，例如先保命、换资源、避免正面硬拼团战",
+          "covered": true,
+          "evidence": "别送，稳住心态",
+          "evidence_present": true,
+          "evidence_verified": true
+        }
+      ],
+      "judge_forbidden": [],
+      "judge_reason": "回答结合悟空英雄特点给出了保命、清线守家等具体建议，且未重复询问英雄或拒绝回答。",
+      "judge_error": null,
+      "judge_ms": 1577,
       "evidence_checked": 2,
       "evidence_verified": 2,
       "passed": true,

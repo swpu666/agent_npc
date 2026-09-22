@@ -82,24 +82,30 @@ class CoreRunner:
 
 
 class HttpRunner:
-    """通过 HTTP 调用真实的 /api/chat，验证网页使用的同一条接口链路。"""
+    """通过 HTTP 调用真实的 /api/chat，验证网页使用的同一条接口链路。
+
+    复用同一个 Client（keep-alive）：本机每新建一次连接会固定多花约 320ms 的连接建立开销，
+    用模块级 `httpx.post`（每次新建连接）会把这笔开销算进"响应耗时"，
+    使 http 模式测出的延迟虚高。浏览器默认复用连接，因此那笔开销对真实用户并不存在。
+    """
 
     name = "http"
 
     def __init__(self, settings: Settings, base_url: str):
         import httpx
 
-        self.httpx = httpx
+        self._client = httpx.Client(timeout=settings.llm_timeout_s + 10)
         self.base_url = base_url.rstrip("/")
-        self.timeout = settings.llm_timeout_s + 10
         self.llm = LLMClient(settings)
+
+    def close(self) -> None:
+        self._client.close()
 
     def chat(self, message: str, history: list[dict]) -> tuple[dict | None, str | None]:
         try:
-            resp = self.httpx.post(
+            resp = self._client.post(
                 f"{self.base_url}/api/chat",
                 json={"message": message, "history": history},
-                timeout=self.timeout,
             )
         except Exception as exc:  # noqa: BLE001
             return None, f"http_error: {type(exc).__name__}: {exc}"

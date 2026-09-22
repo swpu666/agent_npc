@@ -77,6 +77,14 @@ def test_chat_rejects_too_long_input(client: TestClient) -> None:
     assert resp.json()["detail"]["error"] == "too_long"
 
 
+@pytest.mark.parametrize("message", ["。。。。", "？？？", "！！！", "   ...   "])
+def test_chat_rejects_meaningless_input(client: TestClient, message: str) -> None:
+    """纯符号消息归一化后为空串，规则层毫无信号；不拦下就会被上下文继承硬猜。"""
+    resp = client.post("/api/chat", json={"message": message})
+    assert resp.status_code == 400
+    assert resp.json()["detail"]["error"] == "unrecognized_input"
+
+
 def test_chat_ignores_invalid_history_items(client: TestClient) -> None:
     resp = client.post(
         "/api/chat",
@@ -94,6 +102,21 @@ def test_index_page_is_served(client: TestClient) -> None:
 def test_static_assets_are_served(client: TestClient) -> None:
     assert client.get("/static/app.js").status_code == 200
     assert client.get("/static/style.css").status_code == 200
+
+
+def test_hidden_attribute_is_not_overridden_by_layout_css(client: TestClient) -> None:
+    """回归：`.notice { display: flex }` 会盖过浏览器默认的 `[hidden] { display: none }`。
+
+    后果是提示条从页面加载起就常驻显示，而「重新发送」在无待重发内容时静默 return，
+    使用者看到的就是"按钮点了没反应"。凡是同时用了 `hidden` 与显式 `display` 的容器，
+    都必须补一条 `X[hidden]` 规则。
+    """
+    css = client.get("/static/style.css").text
+    for selector in (".notice", ".drawer"):
+        assert f"{selector}[hidden]" in css, f"{selector} 缺少 [hidden] 兜底规则"
+    # 加了 hidden 属性的容器必须是我们的兜底选择器之一
+    for path in ("/", "/static/app.js"):
+        assert "hidden" in client.get(path).text
 
 
 def test_no_api_key_in_frontend_assets(client: TestClient) -> None:
