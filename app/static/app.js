@@ -428,12 +428,50 @@
     return card;
   }
 
+  // 统一拿 JSON：区分「网络失败 / HTTP 非 2xx / 非 JSON 响应」三种失败，便于精确报错。
+  // 后端的 memory / knowledge-gaps 接口在任何情况下都返回 200 + 合法 JSON，
+  // 所以“读取失败”几乎一定是请求没到达或网关回了 HTML 错误页（见 eval/badcases/README.md）。
+  function getJson(url) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) {
+        var httpErr = new Error("HTTP " + r.status);
+        httpErr.kind = "http";
+        httpErr.status = r.status;
+        throw httpErr;
+      }
+      return r.text().then(function (text) {
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          var jsonErr = new Error("non-json");
+          jsonErr.kind = "nonjson";
+          throw jsonErr;
+        }
+      });
+    });
+  }
+
+  // 把一次 fetch 失败翻译成给玩家看的中文提示（区分根因，不再笼统说“无法读取画像”）。
+  function memoryFailCard(what, err) {
+    var hint;
+    if (!err) {
+      hint = "网络请求失败，请确认服务仍在运行（或页面是通过 http(s) 打开的，而非本地文件）。";
+    } else if (err.kind === "http") {
+      hint = "服务返回了错误码 " + err.status + "，请联系管理员或稍后重试。";
+    } else if (err.kind === "nonjson") {
+      hint = "服务返回的内容不是预期的数据（可能是网关/代理的错误页）。请确认后端服务正常。";
+    } else {
+      hint = "无法读取" + what + "，请确认服务仍在运行。";
+    }
+    memoryBody.appendChild(memoryCard(what + "读取失败", [hint]));
+  }
+
   function openMemory() {
     drawerMemory.hidden = false;
     memoryBody.innerHTML = "";
     memoryMeta.textContent = "会话 " + sessionId;
-    fetch("api/memory/" + encodeURIComponent(sessionId))
-      .then(function (r) { return r.json(); })
+    // 画像接口失败：只报画像，不连坐知识缺口（两者失败原因可能不同）。
+    getJson("/api/memory/" + encodeURIComponent(sessionId))
       .then(function (d) {
         var s = d.profile || {};
         memoryBody.appendChild(memoryCard("系统记住的内容（本会话）", d.summary || []));
@@ -454,8 +492,10 @@
         if (!d.enabled) {
           memoryBody.appendChild(memoryCard("状态", ["长期记忆已在后端关闭（MEMORY_ENABLED=0）"]));
         }
-        return fetch("/api/knowledge-gaps?limit=10").then(function (r) { return r.json(); });
       })
+      .catch(function (err) { memoryFailCard("画像", err); });
+    // 知识缺口接口单独请求、单独报错，避免把它的失败误报成“画像失败”。
+    getJson("/api/knowledge-gaps?limit=10")
       .then(function (g) {
         var lines = (g.gaps || []).map(function (item) {
           return item.count > 1 ? item.question + "（被问 " + item.count + " 次）" : item.question;
@@ -472,9 +512,7 @@
           + "按被问次数排序——反复出现的就该补进知识库。"
         ));
       })
-      .catch(function () {
-        memoryBody.appendChild(memoryCard("读取失败", ["无法读取画像，请确认服务仍在运行。"]));
-      });
+      .catch(function (err) { memoryFailCard("知识缺口", err); });
   }
 
   function closeMemory() { drawerMemory.hidden = true; }
@@ -486,12 +524,15 @@
   }
   if (btnMemoryClear) {
     btnMemoryClear.addEventListener("click", function () {
-      fetch("api/memory/" + encodeURIComponent(sessionId), { method: "DELETE" })
+      fetch("/api/memory/" + encodeURIComponent(sessionId), { method: "DELETE" })
         .then(function (r) { return r.json(); })
         .then(function (d) {
           memoryMeta.textContent = d.cleared ? "已清除该会话记忆" : "本来就没有记录";
           memoryBody.innerHTML = "";
           memoryBody.appendChild(memoryCard("已清除", ["这个会话的画像已被删除，后续会重新开始累积。"]));
+        })
+        .catch(function () {
+          memoryBody.appendChild(memoryCard("清除失败", ["无法连接到服务，请确认服务仍在运行。"]));
         });
     });
   }
