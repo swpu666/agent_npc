@@ -27,7 +27,7 @@ from app.agent.intent import (
 )
 from app.agent.llm import LLMClient, LLMError
 from app import memory
-from app.agent.normalize import detect_anaphora, extract_urls, is_no_coverage_leading
+from app.agent.normalize import extract_urls, is_no_coverage_leading
 from app.agent.retrieval import (
     KnowledgeBase,
     RetrievedDoc,
@@ -279,13 +279,13 @@ class Agent:
         history: list[dict] | None,
         intent_result: IntentResult,
     ) -> tuple[list[RetrievedDoc], list[str]]:
-        """返回 (命中的知识, 弱相关标题, 是否借助历史补全才命中)。
+        """返回 (命中的知识, 弱相关标题, 是否借助历史补全)。
 
-        检索策略：先查当前问句，检不到再用上一轮问题补全后重试。
+        检索策略：只要存在上一轮用户消息，就把"上一轮问题 + 当前问句"拼在一起检索，
+        让上下文始终参与召回，不再对"自带主题词的问题"单独检索命中后跳过历史。
 
-        "先查再补"的顺序很重要：自带主题词的问题（"暴君什么时候打"）不应该拼历史，
-        否则会引入无关话题；而依赖上文的问法（"那这个呢""被反野了怎么办"）
-        单独检索必然检不到，自然触发补全。
+        说明：早期版本先单独检索、检不到才补历史，目的是让自带主题词的问句避免话题漂移；
+        但那会让"既能单独命中、又确实依赖上文"的问句丢掉上下文。现改为有历史就一律拼接。
         """
         prev_user = previous_user_message(history)
 
@@ -300,22 +300,10 @@ class Agent:
         top_k = self.settings.retrieval_top_k
         min_score = self.settings.retrieval_min_score
 
-        # 规则一：出现指代表达（"那这个""它"）时，当前问句没有自洽的指代对象，必须补上下文。
-        # 否则「那这个位置前期该干嘛」会被泛化的「五个位置的分工与配合」抢先命中（15.75 分），
-        # 而玩家真正问的是上一轮提到的那个位置。
-        prefer_context = bool(prev_user) and detect_anaphora(message)
-        query = augment_query(message, prev_user) if prefer_context else message
-
+        # 有上一轮用户消息时一律拼进查询一起检索，让上下文始终参与召回。
+        query = augment_query(message, prev_user) if prev_user else message
         docs, hit = self.kb.search(query, top_k=top_k, min_score=min_score, boost_topic=boost_topic)
-        used_history = hit and prefer_context
-
-        # 规则二：没有指代词时先单独检索（自带主题词的问题不该拼历史，避免话题漂移），
-        # 检不到再用上一轮问题补全后重试——覆盖「被反野了怎么办」这类省略主语的追问。
-        if not hit and prev_user and not prefer_context:
-            docs, hit = self.kb.search(
-                augment_query(message, prev_user), top_k=top_k, min_score=min_score, boost_topic=boost_topic
-            )
-            used_history = hit
+        used_history = bool(prev_user)
 
         if hit:
             return docs, [], used_history
@@ -324,9 +312,8 @@ class Agent:
         # 关键约束：只有**真的命中了标题/关键词/主题/实体**的条目才算相关。
         # 仅靠 BM25 字面重叠上榜的条目属于噪声（例如「巅峰赛的积分怎么算」会命中
         # 「补刀的含义与作用」），把它当成建议列表反而会误导玩家。
-        relaxed_query = augment_query(message, prev_user) if prev_user else message
         relaxed, _ = self.kb.search(
-            relaxed_query, top_k=3, min_score=min_score * 0.6, boost_topic=boost_topic
+            query, top_k=3, min_score=min_score * 0.6, boost_topic=boost_topic
         )
         field_prefixes = ("title:", "keywords:", "topic:", "entity:")
         near_titles = [

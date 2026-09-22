@@ -274,15 +274,19 @@ def test_need_more_info_asks_only_missing_conditions() -> None:
     assert "用的哪个英雄" not in partial, "英雄已经说过，不该再问"
 
 
-def test_standalone_question_does_not_pull_in_history(settings: Settings) -> None:
-    """自带主题词的问题必须先单独检索命中，不拼接历史，避免话题漂移。"""
+def test_standalone_question_also_uses_history(settings: Settings) -> None:
+    """自带主题词的问题同样拼接历史检索：只要存在上一轮消息就一律拼接。
+
+    早期版本让这类问句先单独检索命中、跳过历史（避免话题漂移），
+    代价是丢掉上下文；现按"有历史就一律拼接"处理，当前问句仍应命中自身条目。
+    """
     agent, _ = build_agent(settings)
     history = [
         {"role": "user", "content": "打野的职责是什么？"},
         {"role": "assistant", "content": "打野负责清野、支援与争夺中立资源。"},
     ]
     result = agent.answer("暴君什么时候打？", history)
-    assert result.debug["retrieval_used_history"] is False
+    assert result.debug["retrieval_used_history"] is True
     assert any(c["id"] == "MAP-TYRANT-001" for c in result.citations)
 
 

@@ -249,7 +249,7 @@
         <tr><td class="req">输出含回答 / 意图 / 引用 / 耗时</td>
           <td class="impl">响应字段 <code>answer / intent / route_state / citations / timings / model / mock / retryable</code>。</td></tr>
         <tr><td class="req">支持 3 轮以上，理解「那这个呢」</td>
-          <td class="impl">历史传递 + 两步混合检索：指代句直接拼上一轮问题；其余先单独检索、未命中再重试。</td></tr>
+          <td class="impl">历史传递 + 上下文检索：只要存在上一轮消息，就把它与当前问句拼接后检索，并按上一轮主题加分。</td></tr>
         <tr><td class="req">处理空输入 / 过长 / 失败；可配超时</td>
           <td class="impl">空 → 400、&gt;1000 字 → 400、模型超时 → 504、4xx → 502、5xx → 502；<code>LLM_TIMEOUT_S</code> 可配。</td></tr>
         <tr><td class="req">密钥仅在后端</td>
