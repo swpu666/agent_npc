@@ -1,0 +1,19 @@
+# 密钥与本地配置
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# 评测产物中的临时文件（正式报告报告目录中的 json/md 需要提交）
+eval/reports/*.tmp
+
+# 编辑器
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

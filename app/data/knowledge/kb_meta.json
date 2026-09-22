@@ -1,0 +1,20 @@
+{
+  "kb_version": "1.0",
+  "game": "王者荣耀",
+  "entry_count": 31,
+  "topic_distribution": {
+    "对局目标": 5,
+    "地图机制": 9,
+    "位置职责": 6,
+    "基础操作": 6,
+    "资源与经济": 5
+  },
+  "confidence_distribution": {
+    "high": 28,
+    "medium": 3
+  },
+  "linted_at": "2026-09-22",
+  "source_domains": [
+    "pvp.qq.com"
+  ]
+}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>训练向导「小玖」 · 王者荣耀问答 Agent</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="avatar" aria-hidden="true">玖</div>
+        <div class="brand-text">
+          <h1>训练向导「小玖」</h1>
+          <p class="subtitle">王者荣耀 · 基础玩法问答</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="badges" id="badges">
+          <span class="badge badge-muted" id="badge-model">模型加载中…</span>
+          <span class="badge badge-warn hidden" id="badge-mock" title="Mock 模式不会调用真实模型，结果仅供链路验证">MOCK 模式</span>
+        </div>
+        <button class="btn btn-ghost" id="btn-clear" type="button">清空对话</button>
+      </div>
+    </header>
+
+    <div class="notice" id="notice" role="alert" hidden>
+      <span id="notice-text"></span>
+      <button class="btn btn-small" id="btn-retry" type="button">重新发送</button>
+    </div>
+
+    <main class="chat" id="chat" aria-live="polite">
+      <div class="chat-inner" id="chat-inner">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-title">你好，我是训练向导小玖</div>
+          <p class="empty-desc">
+            我能回答<b>对局目标</b>、<b>地图机制</b>、<b>位置职责</b>、<b>基础操作</b>这几类问题，也可以陪你聊聊怎么打。<br />
+            我不能查看你的账号、战绩、段位，也不能读取实时对局。
+          </p>
+          <div class="samples" id="samples">
+            <button class="chip" type="button">红BUFF有什么作用？</button>
+            <button class="chip" type="button">防御塔需要按什么顺序推？</button>
+            <button class="chip" type="button">打野的职责是什么？</button>
+            <button class="chip" type="button">我这局劣势了该怎么办？</button>
+            <button class="chip" type="button">帮我查一下我最近的胜率</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <form class="composer" id="composer" autocomplete="off">
+      <textarea
+        id="input"
+        rows="1"
+        maxlength="1200"
+        placeholder="问点什么吧，例如：补刀是什么意思？（Enter 发送，Shift+Enter 换行）"
+        aria-label="输入你的问题"
+      ></textarea>
+      <div class="composer-side">
+        <span class="counter" id="counter">0/1000</span>
+        <button class="btn btn-primary" id="btn-send" type="submit">发送</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
