@@ -240,7 +240,7 @@
       </p>
       <div class="stat-strip">
         <div class="stat">
-          <div class="v">185</div>
+          <div class="v">190</div>
           <div class="k">单元测试 passed</div>
         </div>
         <div class="stat">
@@ -294,6 +294,129 @@
         <div class="t">引用校验</div>
         <div class="d">来源必须来自本次检索；否则清空，绝不伪造</div>
       </div>
+    </div>
+
+    <h2>规则优先：词表怎么用、模型什么时候上场</h2>
+    <p class="hint">整套设计里最核心的一块。意图判定完全在本地用「词表 + 正则」完成，
+      只有规则真的判不出来时，才把决定权交给模型——而且只让它选路，不让它凭记忆答题。</p>
+
+    <div class="flow">
+      <div class="step">
+        <div class="n">① 词表打分</div>
+        <div class="t">本地 · 0 次调用</div>
+        <div class="d">主题词 / 疑问词 / 闲聊词 / 越界规则命中即计分，四类意图各自累计</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="n">② 分差判定</div>
+        <div class="t">最高分 &gt; 次高分 + 1</div>
+        <div class="d">分差够大 → 直接定级；否则标记为"不确定"</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="n">③ 上下文继承</div>
+        <div class="t">仍不确定时</div>
+        <div class="d">上一轮在追问 / 省略式追问（"那这个呢"）→ 继承意图，依旧不调用模型</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="n">④ 模型兜底</div>
+        <div class="t">最后一步</div>
+        <div class="d">四选一的受限分类（temperature=0）；再不确定才落到 knowledge_qa</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>词表 / 规则</th><th>内容</th><th>作用</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>SYNONYM_GROUPS</code></td>
+            <td>俗称、简称、别名、错别字（大龙↔主宰、安其拉→安琪拉）</td>
+            <td>只做<b>扩展</b>、不改语义：直接命中权重 <code>1.0</code>，同义词命中 <code>0.8</code></td>
+          </tr>
+          <tr>
+            <td><code>TOPIC_TERMS</code></td>
+            <td>强游戏主题词</td>
+            <td>判断"这是不是一个游戏玩法问题"</td>
+          </tr>
+          <tr>
+            <td><code>QUESTION_PATTERNS</code> · <code>CHITCHAT_PATTERNS</code></td>
+            <td>疑问特征词 / 闲聊特征词</td>
+            <td>区分"在提问"与"在寒暄"</td>
+          </tr>
+          <tr>
+            <td><code>OUT_OF_SCOPE_RULES</code> · <code>KB_GAP_RULES</code> · <code>INJECTION_PATTERNS</code></td>
+            <td>正则规则，每条带原因标签</td>
+            <td>越界请求、知识覆盖缺口、提示词注入</td>
+          </tr>
+          <tr>
+            <td><code>POSITION_HINTS</code> · <code>PHASE_HINTS</code> · <code>HERO_HINTS</code></td>
+            <td>位置 / 阶段 / 英雄白名单</td>
+            <td>判断情境问题是否缺关键条件，缺则反问补充</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint">这些表全部集中在 <code>app/agent/synonyms.py</code> 一个文件里，便于集中维护与单测。</p>
+
+    <h2>什么情况下才真的调用模型</h2>
+    <p class="hint">模型不是"要不要用"的问题，而是"在哪三个口子上用、其余一律不用"的问题。</p>
+    <div class="grid">
+      <div class="card d-amber">
+        <h3><span class="dot"></span>① 意图兜底分类</h3>
+        <p>规则零信号、或最高分与次高分<b>分差 ≤ 1</b> 时，调用一次四选一受限分类
+          （<code>temperature=0</code>、<code>max_tokens=40</code>）。它只负责<b>选路</b>，不负责答题。</p>
+      </div>
+      <div class="card d-blue">
+        <h3><span class="dot"></span>② 通用理解作答（kb_gap）</h3>
+        <p>英雄介绍、强度梯队这类知识库不覆盖的问题，允许模型用自身理解回答；
+          但必须标注<b>"不在知识库、仅供参考"</b>，且不展示任何来源卡片。</p>
+      </div>
+      <div class="card d-cyan">
+        <h3><span class="dot"></span>③ 生成阶段</h3>
+        <p>知识问答 / 情境建议 / 闲聊各调用一次生成；<b>越界、未收录、缺条件、没听懂</b>四类直接走模板，
+          共 0 次调用。</p>
+      </div>
+      <div class="card d-green">
+        <h3><span class="dot"></span>④ 永不交给模型</h3>
+        <p>数值与规则类问题（刷新秒数、积分算法）模型记忆容易过时，
+          宁可如实说"未收录"，也不让模型凭印象作答。</p>
+      </div>
+    </div>
+
+    <h2>优点，以及为此付出的代价</h2>
+    <div class="grid">
+      <div class="card d-green">
+        <h3><span class="dot"></span>优点</h3>
+        <p><b>快</b>：意图 + 检索在本地合计约 <code>0.7ms</code>，耗时几乎全在生成上。<br>
+          <b>可控</b>：每次判级都有证据（命中了哪张表的哪个词），可解释、可回归。<br>
+          <b>稳</b>：确定性输出，同一输入结果一致，评测与回归才有可比性。<br>
+          <b>省</b>：实测仅 <code>61.1%</code> 的问答真正调用模型，其余走模板。</p>
+      </div>
+      <div class="card d-red">
+        <h3><span class="dot"></span>代价</h3>
+        <p><b>覆盖率有天花板</b>：没登记过的说法可能漏判，词表需要持续维护。<br>
+          <b>误命中更危险</b>：句子碰巧命中某个词或某条正则，规则会"自信地"判错，根本不走模型。<br>
+          <b>阈值靠经验</b>：分差阈值 1 是人定的，边界会抖动。<br>
+          <b>字面 ≠ 语义</b>：换个措辞就可能判错，因此每条规则都要配正反用例。</p>
+      </div>
+    </div>
+
+    <h2>为什么这套适合本场景</h2>
+    <div class="card d-blue">
+      <h3><span class="dot"></span>话题封闭，且题目对"确定性"有硬要求</h3>
+      <p>
+        本 Agent 被限定在<b>单款游戏、有限话题（对局目标 / 地图机制 / 位置职责 / 基础操作）</b>内，
+        术语封闭、可枚举——这正是词表方案最擅长的形态；换成开放域助手，词表就会撑不住。
+        同时题目明确要求<b>"未命中 ≠ 能力范围外"、"不伪造来源"</b>：这类判断必须确定性、可复核
+        （早期实测把"补条件"的短句判成闲聊、把"没听懂"判成越界，都是交给模型兜底造成的）。
+        本地规则毫秒级返回，也让"能确定的事不花模型钱"落到了实处。
+        模型的长处（理解口语）并没有被浪费：它守在<b>兜底分类</b>与 <b>kb_gap 通用作答</b>这两个口子上，
+        只在该上场时上场。
+      </p>
     </div>
 
     <h2>六个关键设计决策</h2>
