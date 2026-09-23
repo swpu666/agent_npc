@@ -433,12 +433,12 @@
   }
 
   // 统一拿 JSON：区分「网络失败 / HTTP 非 2xx / 非 JSON 响应」三种失败，便于精确报错。
-  // 后端的 memory / knowledge-gaps 接口在任何情况下都返回 200 + 合法 JSON，
+  // 后端的 memory 接口在任何情况下都返回 200 + 合法 JSON，
   // 所以“读取失败”几乎一定是请求没到达或网关回了 HTML 错误页（见 eval/badcases/README.md）。
   //
   // 注意：url 必须是**相对地址**（"api/…"），由页面里的 <base href="/agentnpc/"> 决定最终前缀。
   // 写成绝对路径 "/api/…" 会被解析到站点根目录、绕过子路径部署，网关直接回 404 —
-  // 实测「画像读取失败 / 知识缺口读取失败」就是这么来的。
+  // 实测「画像读取失败」就是这么来的。
   function getJson(url) {
     return fetch(url).then(function (r) {
       if (!r.ok) {
@@ -478,7 +478,12 @@
     drawerMemory.hidden = false;
     memoryBody.innerHTML = "";
     memoryMeta.textContent = "会话 " + sessionId;
-    // 画像接口失败：只报画像，不连坐知识缺口（两者失败原因可能不同）。
+    // 只请求本会话画像。
+    //
+    // 「跨会话知识缺口聚合」已从页面上撤下（2026-09-23）：未命中的判据放宽成"稳定常识也走通用作答"
+    // 之后，这份清单里混进了大量非知识问题（"你有病""上下文呀"），按被问次数排序**看着像结论、
+    // 其实不准**——展示出来比不展示更误导。能力本身保留在 `GET /api/knowledge-gaps`，
+    // 需要时用接口看，不在玩家界面上占位置。
     getJson("api/memory/" + encodeURIComponent(sessionId))
       .then(function (d) {
         var s = d.profile || {};
@@ -502,25 +507,6 @@
         }
       })
       .catch(function (err) { memoryFailCard("画像", err); });
-    // 知识缺口接口单独请求、单独报错，避免把它的失败误报成“画像失败”。
-    getJson("api/knowledge-gaps?limit=10")
-      .then(function (g) {
-        var lines = (g.gaps || []).map(function (item) {
-          return item.count > 1 ? item.question + "（被问 " + item.count + " 次）" : item.question;
-        });
-        memoryBody.appendChild(memoryCard(
-          "知识库未覆盖的问题（跨会话聚合，按被问次数排序）",
-          lines.length
-            ? lines
-            : ["暂时没有：最近问过的问题知识库都接住了。"]
-        ));
-        memoryBody.appendChild(el(
-          "div", "log-empty",
-          "说明：这里统计的是「知识库没有直接资料、只能靠通用理解回答」的问题，"
-          + "按被问次数排序——反复出现的就该补进知识库。"
-        ));
-      })
-      .catch(function (err) { memoryFailCard("知识缺口", err); });
   }
 
   function closeMemory() { drawerMemory.hidden = true; }

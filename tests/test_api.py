@@ -208,6 +208,19 @@ def test_hidden_attribute_is_not_overridden_by_layout_css(client: TestClient) ->
         assert "hidden" in client.get(path).text
 
 
+def test_memory_drawer_does_not_render_knowledge_gaps(client: TestClient) -> None:
+    """页面上撤下"跨会话知识缺口聚合"，但后端能力保留。
+
+    撤下的原因：未命中判据放宽后，这份清单里混进了大量非知识问题（"你有病""上下文呀"），
+    按被问次数排序看着像结论、其实不准——展示出来比不展示更误导。
+    """
+    js = client.get("/static/app.js").text
+    for call in ("fetch", "getJson"):
+        assert f'{call}("api/knowledge-gaps' not in js, "页面不应再请求知识缺口接口"
+        assert f"{call}('api/knowledge-gaps" not in js, "页面不应再请求知识缺口接口"
+    assert client.get("/api/knowledge-gaps").status_code == 200, "后端的聚合能力要保留"
+
+
 def test_frontend_api_paths_stay_relative_for_subpath_deploy(client: TestClient) -> None:
     """前端接口地址必须用相对路径：站点部署在子路径 /agentnpc/ 下。
 
