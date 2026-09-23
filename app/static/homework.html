@@ -178,7 +178,7 @@
       <div class="stat"><div class="v">18 例</div><div class="k">离线测试集 · 覆盖四类意图</div></div>
       <div class="stat"><div class="v">100%</div><div class="k">意图 / 检索 / 回答 三项命中率</div></div>
       <div class="stat"><div class="v">33 条</div><div class="k">知识库 · 5 类主题 · 9 个来源</div></div>
-      <div class="stat"><div class="v">4 类</div><div class="k">意图 + 4 个路由状态</div></div>
+      <div class="stat"><div class="v">4 类</div><div class="k">意图 + 6 个路由状态</div></div>
       <div class="stat"><div class="v">&lt;1ms</div><div class="k">本地意图 + 检索合计耗时</div></div>
     </div>
   </div>
@@ -237,7 +237,7 @@
         <tr><td class="req">失败明确提示 + 重新发送</td>
           <td class="impl">顶部 <code>notice</code> 提示条 + 「重新发送」按钮，保留已输入内容（<code>lastFailed</code>）。</td></tr>
         <tr><td class="req">知识类回答展示来源；无资料不伪造</td>
-          <td class="impl">只渲染后端真实检索到的条目；<code>kb_gap / kb_miss / chitchat / out_of_scope</code> 一律 <code>citations: []</code>。</td></tr>
+          <td class="impl">只渲染后端真实检索到的条目；<code>kb_gap / kb_general / kb_miss / conversation_recall / chitchat / out_of_scope</code> 一律 <code>citations: []</code>。</td></tr>
       </table>
     </div>
 
@@ -289,7 +289,7 @@
       </div>
       <div class="card d-amber">
         <h3><span class="dot"></span>③ 未命中 / 冲突 / 版本不明怎么办</h3>
-        <p>分四种：未收录走 <code>kb_miss</code>（如实说不知道，不改判越界）；命中但答不了核心诉求走 <code>kb_gap</code>（声明通用理解 + 清空来源）；多版本以较新者为主并注明；<code>confidence: low</code> 追加「仅供参考」。</p>
+        <p>分五种：版本敏感数值的未收录走 <code>kb_miss</code>（如实说不知道，不改判越界）；稳定常识的未收录走 <code>kb_general</code>（用通用理解作答 + 清空来源）；命中但答不了核心诉求走 <code>kb_gap</code>（声明通用理解 + 清空来源）；多版本以较新者为主并注明；<code>confidence: low</code> 追加「仅供参考」。</p>
       </div>
       <div class="card d-blue">
         <h3><span class="dot"></span>④ 如何更新与演进</h3>
@@ -318,11 +318,11 @@
       越界最高（涉及未接入能力时顺带回答有编造风险）；闲聊最低（避免把「你好，顺便问下红BUFF」判成闲聊）。</p>
     </div>
     <div class="callout green">
-      <p><b>路由状态（不是第五个意图）</b>：<code>need_more_info</code>（补充条件）、<code>kb_miss</code>（知识未收录）、<code>kb_gap</code>（知识库覆盖缺口）、<code>unclear_input</code>（没听懂）。其中「不要因资料未命中就把游戏问题判成能力范围外」是一条硬约束：<code>kb_miss</code> 由检索层产出、<code>out_of_scope</code> 由意图层产出，二者无互相降级路径。</p>
+      <p><b>路由状态（不是第五个意图）</b>：<code>need_more_info</code>（补充条件）、<code>kb_miss</code>（缺的是版本敏感数值/算法：如实说不知道）、<code>kb_general</code>（缺材料但属于稳定常识：通用理解作答并标注）、<code>kb_gap</code>（知识库覆盖缺口：英雄级信息 / 动态数据）、<code>unclear_input</code>（没听懂）、<code>conversation_recall</code>（问「我前面问了什么」：复述历史里的提问）。其中「不要因资料未命中就把游戏问题判成能力范围外」是一条硬约束：<code>kb_miss</code> 由检索层产出、<code>out_of_scope</code> 由意图层产出，二者无互相降级路径。</p>
     </div>
     <div class="callout">
-      <p><b>规则 + 模型 + 兜底</b>：① 规则词表打分（0 次模型调用，0.2ms）→ ② 上下文继承（零信号时继承上一轮路由状态）→ ③ 模型受限分类（temperature=0，仅在前两层都不适用）→ ④ 最终兜底判 <code>knowledge_qa</code>。
-      注入防护：命中指令模式且不含游戏主题词 → 归 <code>out_of_scope</code>；夹带正常玩法问题则照常按知识问答处理、仅加加固标记。单测 <code>tests/test_intent.py</code> 覆盖四类、优先级、追问、注入、错别字、无意义输入。</p>
+      <p><b>规则 + 模型 + 兜底</b>：① 规则词表打分（0 次模型调用，0.2ms）→ ② 上下文继承（零信号<b>且本轮带承接信号</b>时，继承上一轮路由状态）→ ③ 模型受限分类（temperature=0，仅在前两层都不适用）→ ④ 最终兜底判 <code>knowledge_qa</code>。
+      注入防护：命中指令模式且不含游戏主题词 → 归 <code>out_of_scope</code>；夹带正常玩法问题则照常按知识问答处理、仅加加固标记。单测 <code>tests/test_intent.py</code> 覆盖四类、优先级、追问、注入、错别字、无意义输入、对话回顾、未命中两档。</p>
     </div>
   </section>
 
@@ -385,7 +385,7 @@
     <p class="hint">按评审最短路径即可复现：配置模型 → 启动服务 → 网页连续提问 → 执行离线评测 → 查看报告。</p>
     <div class="callout">
       <p><code>pip install -r requirements.txt</code> → <code>copy .env.example .env</code>（填密钥）→ <code>uvicorn app.main:app --port 8000</code>（打开 http://127.0.0.1:8000/ 连续提问）→ <code>python -m eval.run_eval</code>（报告写入 <code>eval/reports/</code>）。
-      无密钥可先 <code>MOCK_LLM=1</code> 跑冒烟验证链路（页面有 MOCK 徽标，结果不作为质量结论）。工程含：<code>app/</code>（页面 + 接口 + 意图 + 检索 + 生成）、<code>eval/</code>（测试集 + 评测 + 对话回放 + 报告）、<code>tests/</code>（190 个单测）、知识文件、<code>.env.example</code>、<code>README.md</code>、<code>DESIGN.md</code>。</p>
+      无密钥可先 <code>MOCK_LLM=1</code> 跑冒烟验证链路（页面有 MOCK 徽标，结果不作为质量结论）。工程含：<code>app/</code>（页面 + 接口 + 意图 + 检索 + 生成）、<code>eval/</code>（测试集 + 评测 + 对话回放 + 报告）、<code>tests/</code>（234 个单测）、知识文件、<code>.env.example</code>、<code>README.md</code>、<code>DESIGN.md</code>。</p>
     </div>
   </section>
 
@@ -398,7 +398,7 @@
         <tr><td class="req">运行方法（依赖 / 配置 / 启动 / 评测 / 环境）</td><td class="impl">§1：requirements 固定次要版本、.env 密钥后置、启动与评测命令、已验证环境（Windows 11 / Python 3.12 / deepseek-chat）</td></tr>
         <tr><td class="req">接口与流程（输入输出 / 上下文 / 路由 / 检索 / 生成）</td><td class="impl">§2：<code>/api/chat</code> 定义、六步管线、上下文管理、使用记录、长期记忆</td></tr>
         <tr><td class="req">知识库设计（结构 / 来源 / 检索 / 更新 / 未知处理）</td><td class="impl">§3：字段约束、检索六步、未命中四种情况、更新方式、演进路径</td></tr>
-        <tr><td class="req">离线评测（覆盖 / 方法 / 结果 / 抽查 / 改进）</td><td class="impl">§4：18 例覆盖矩阵、两阶段判分、真实结果、8 轮 36 项改进记录</td></tr>
+        <tr><td class="req">离线评测（覆盖 / 方法 / 结果 / 抽查 / 改进）</td><td class="impl">§4：18 例覆盖矩阵、两阶段判分、真实结果、9 轮 43 项改进记录</td></tr>
         <tr><td class="req">效率与取舍（投入 / 耗时 / 简化 / 限制）</td><td class="impl">§5：耗时三段拆分、7 项措施、简化代价对照表</td></tr>
         <tr><td class="req">AI 开发过程（工具 / 参与环节 / 亲自核验例子）</td><td class="impl">§6：核验清单 8 项 + 11 个「亲自检查并修正 AI 产出」的真实缺陷（含失败证据）</td></tr>
       </table>

@@ -68,7 +68,14 @@
 <script>
 (function () {
   var INTENT = { knowledge_qa: "知识", situational_advice: "情境", chitchat: "闲聊", out_of_scope: "越界", "(invalid)": "非法" };
-  var ROUTE = { need_more_info: "需补充条件", kb_miss: "未收录", kb_gap: "未覆盖", unclear_input: "没听懂" };
+  var ROUTE = {
+    need_more_info: "需补充条件",
+    kb_miss: "未收录（版本敏感）",
+    kb_gap: "未覆盖（英雄/动态）",
+    kb_general: "通用理解作答",
+    unclear_input: "没听懂",
+    conversation_recall: "回顾提问"
+  };
 
   function el(tag, cls, text) {
     var n = document.createElement(tag);
