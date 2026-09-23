@@ -357,8 +357,17 @@ def classify(
         # 实测不但把它判成了"闲聊"，还让意图环节多花 0.8~1.2 秒。
         if prev_route_state == ROUTE_NEED_MORE_INFO:
             intent, source, uncertain = INTENT_SITUATIONAL, "inherit", False
-        # 优先级 2：省略式追问（"那这个呢"），继承上一轮意图
-        elif inherit_intent and inherit_intent in INTENTS:
+        # 优先级 2：省略式追问（"那这个呢"），继承上一轮意图——**但必须带承接信号**。
+        #
+        # 早期版本只要存在上一轮意图就无条件继承，于是「你有病」这种和上文毫不相干的
+        # 零信号短句也被判成知识问答：接着被"通用理解"接住，模型顺着历史讲了一整段
+        # 上一个英雄（实测反馈「我骂一句，它接着聊猴子」）。省略式追问的特征就是有指代
+        # 或"X 呢"结构，没有这个信号就不该替玩家认定他在追问。
+        elif (
+            inherit_intent
+            and inherit_intent in INTENTS
+            and (detect_anaphora(text) or is_topic_followup(text))
+        ):
             intent, source, uncertain = inherit_intent, "inherit", False
 
     if uncertain:

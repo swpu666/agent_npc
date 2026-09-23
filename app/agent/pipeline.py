@@ -225,8 +225,17 @@ class Agent:
             # 兜底：万一还有漏网的"半相关命中"，只要模型开门见山就说没收录，
             # 就统一按"覆盖不足"处理——既清空来源，也把路由状态标上。
             # 只清来源不改状态会导致界面自相矛盾：标着"正常回答"却一个来源都没有。
-            # kb_general 例外：它本来就没有材料、说明已在路由阶段写过，不必再叠一层。
-            if result.route_state != ROUTE_KB_GENERAL and is_no_coverage_leading(result.answer):
+            #
+            # 两条限定：
+            # 1. 只有**知识问答**才谈得上"来源有没有材料"。能力范围外/闲聊的模板本身就写着
+            #    "帮不上忙"，会被这条兜底误认成"未收录"并挂上 kb_gap 标签——实测
+            #    「我前面发了什么内容」被判越界后，路由标签却是覆盖不足，自相矛盾。
+            # 2. kb_general 本来就没有材料、说明已在路由阶段写过，不再叠一层。
+            if (
+                intent_result.intent == INTENT_KNOWLEDGE
+                and result.route_state != ROUTE_KB_GENERAL
+                and is_no_coverage_leading(result.answer)
+            ):
                 result.citations = []
                 if result.route_state is None:
                     result.route_state = ROUTE_KB_GAP

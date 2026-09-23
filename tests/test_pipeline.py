@@ -239,6 +239,20 @@ def test_out_of_scope_uses_template_without_model(settings: Settings) -> None:
     assert "战绩" in result.answer or "段位" in result.answer
 
 
+def test_out_of_scope_answer_is_not_relabelled_as_kb_gap(settings: Settings) -> None:
+    """越界模板里写着"帮不上忙"，但那是能力边界，不是"知识库未覆盖"。
+
+    实测：「我前面发了什么内容」被兜底分类判成越界后，路由标签又被这条兜底改成了
+    kb_gap——界面上一句"帮不上忙"却挂着"知识库未覆盖"，自相矛盾。
+    """
+    agent, _ = build_agent(settings)
+    result = agent.answer("帮我解一下这个数学题")
+
+    assert result.intent == INTENT_OUT_OF_SCOPE
+    assert result.route_state is None, "越界请求不该被标成覆盖不足"
+    assert result.citations == []
+
+
 def test_out_of_scope_operate_account(settings: Settings) -> None:
     agent, fake = build_agent(settings)
     result = agent.answer("你能帮我上号打一把排位吗？")

@@ -235,6 +235,17 @@ def test_unclear_input_short_circuits(text: str) -> None:
         "我上一个问题是什么",
         "你记得我问过什么吗",
         "回顾一下我问的问题",
+        # 实测玩家真的这么说（第 8 轮日志里「我第一句问了什么」被漏掉）
+        "我第一句问了什么",
+        "我第三个问题是什么",
+        "我第三轮说了啥",
+        "上下文内容",
+        "上文",
+        # 第 9 轮日志：动词是"发"，早期词表只收"问/说" → 漏判 → 被判成越界请求
+        "我前面发了什么内容",
+        "我前面发的什么",
+        "我发了什么",
+        "我前面说的是什么",
     ],
 )
 def test_conversation_recall_short_circuits(text: str) -> None:
@@ -260,6 +271,9 @@ def test_conversation_recall_short_circuits(text: str) -> None:
     [
         "我刚才说的连招是什么",        # 含主题词，问的是连招本身
         "我前面问的暴君刷新时间是多少",  # 含主题词与疑问词，是真问题
+        "我第一次玩射手该注意什么",     # 「第一次」不是「第一句」
+        "我第一次玩这个该注意什么",     # 同上，且没有主题词可兜底
+        "我前面杀了几个",              # 回顾指代 + 数量疑问，但问的是战绩
         "我玩打野，前期该做什么？",
     ],
 )
@@ -300,6 +314,35 @@ def test_elliptical_followup_inherits_previous_intent() -> None:
 def test_elliptical_followup_falls_back_without_history() -> None:
     # 没有继承来源时，兜底为 knowledge_qa（风险最低的默认行为）
     assert classify("那这个呢？").intent == INTENT_KNOWLEDGE
+
+
+def test_reference_followup_inherits_without_model_call() -> None:
+    """带指代的追问（"那这个呢"）仍然直接继承，不花一次模型调用。"""
+
+    def stub(text: str, history):  # pragma: no cover
+        raise AssertionError("带指代的省略式追问不该走模型兜底")
+
+    result = classify("那这个呢？", inherit_intent=INTENT_KNOWLEDGE, llm_classifier=stub)
+    assert result.intent == INTENT_KNOWLEDGE
+    assert result.source == "inherit"
+
+
+def test_zero_signal_without_reference_is_not_inherited() -> None:
+    """零信号、又不带承接信号的短句不得继承上一轮意图。
+
+    实测：「孙猴子 → 你有病」里，无条件继承把「你有病」判成了知识问答，
+    接着"通用理解"顺着历史讲了一整段孙悟空——玩家骂一句，助手继续聊猴子。
+    """
+    calls: list[str] = []
+
+    def stub(text: str, history):
+        calls.append(text)
+        return INTENT_CHITCHAT
+
+    result = classify("你有病", inherit_intent=INTENT_KNOWLEDGE, llm_classifier=stub)
+    assert result.intent == INTENT_CHITCHAT, "不带指代就不该替玩家认定他在追问"
+    assert result.source == "llm"
+    assert calls, "应交给模型兜底分类，而不是硬继承"
 
 
 # --------------------------------------------------------------- 补充条件的多轮对话

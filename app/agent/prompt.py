@@ -250,7 +250,8 @@ def build_intent_classifier_prompt(text: str) -> list[dict]:
                 "intent 只能是以下四选一：\n"
                 "knowledge_qa：询问游戏通用规则或事实（如「防御塔怎么推」「打野的职责」）\n"
                 "situational_advice：描述自己的对局处境并要建议（如「我这局劣势怎么办」）\n"
-                "chitchat：打招呼、寒暄、表达情绪等社交性内容\n"
+                "chitchat：打招呼、寒暄、表达情绪，或询问本段对话本身"
+                "（如「我前面问了什么」「上一条是什么」）等社交性、元信息内容\n"
                 "out_of_scope：要求查询个人战绩/账号数据、代打、上号，或明显与游戏无关的请求\n"
                 "不要输出任何解释，不要输出多余文字。"
             ),

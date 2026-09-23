@@ -40,3 +40,72 @@ INFO:     223.160.185.124:0 - "POST /api/chat HTTP/1.1" 200 OK
 INFO:     223.160.185.124:0 - "POST /api/chat HTTP/1.1" 200 OK
 INFO:     223.160.185.124:0 - "POST /api/chat HTTP/1.1" 200 OK
 INFO:     223.160.185.124:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     117.176.134.230:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     117.176.134.230:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     117.176.134.230:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     117.176.134.230:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     117.176.134.230:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [832695]
+INFO:     Started server process [1206540]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:33140 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33156 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33156 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33156 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1206540]
+INFO:     Started server process [1206852]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59950 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59960 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59960 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59960 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59960 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "GET /design HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "GET / HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "GET /static/app.js HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1206852]
+INFO:     Started server process [1215180]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51742 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51750 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49754 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49758 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32860 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32860 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32860 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32860 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     182.148.54.159:0 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53784 - "GET /api/knowledge-gaps?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53800 - "GET /api/memory/smucn0xo5m8fqta HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53816 - "GET /api/memory/test-session HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53828 - "GET /api/logs HTTP/1.1" 200 OK
+INFO:     61.151.228.144:0 - "GET / HTTP/1.1" 200 OK
+INFO:     61.151.228.144:0 - "GET /static/style.css HTTP/1.1" 200 OK
+INFO:     61.151.228.144:0 - "GET /static/app.js HTTP/1.1" 200 OK
+INFO:     61.151.228.144:0 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     61.151.228.144:0 - "GET /design HTTP/1.1" 200 OK
