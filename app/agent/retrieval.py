@@ -350,6 +350,22 @@ def previous_user_message(history: list[dict] | None) -> str | None:
     return None
 
 
+def previous_user_messages(history: list[dict] | None, limit: int = 5) -> list[str]:
+    """取历史中最近的若干条用户消息（按时间顺序返回，不含本轮问题）。
+
+    专门给"我前面问了什么"这类回顾问题用：答案不在知识库里，就在这份历史里，
+    所以没必要检索、也没必要让模型复述（复述反而可能编出一条没问过的问题）。
+    """
+    if not history:
+        return []
+    texts = [
+        str(m.get("content") or "").strip()
+        for m in history
+        if isinstance(m, dict) and m.get("role") == "user" and str(m.get("content") or "").strip()
+    ]
+    return texts[-limit:] if limit > 0 else texts
+
+
 def augment_query(text: str, prev_user: str | None) -> str:
     """用上一轮问题补全当前问句的检索意图。
 

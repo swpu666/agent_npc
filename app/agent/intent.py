@@ -21,6 +21,7 @@ from app.agent.normalize import (
     detect_injection,
     extract_conditions,
     has_topic_term,
+    is_conversation_recall,
     is_meaningless_input,
     is_topic_followup,
     normalize,
@@ -34,6 +35,7 @@ from app.agent.synonyms import (
     QUESTION_PATTERNS,
     SITUATIONAL_CONTEXT,
     SITUATIONAL_SUBJECT,
+    VERSION_SENSITIVE_RULES,
 )
 from app.agent.templates import is_need_more_info_reply
 
@@ -50,6 +52,12 @@ ROUTE_KB_GAP = "kb_gap"
 # 没听懂玩家在说什么（纯数字 / 纯符号 / 未知字母串）：承认没看懂并拟人化引导，
 # 既不能当成"越界请求"，也不该消耗一次模型调用。
 ROUTE_UNCLEAR_INPUT = "unclear_input"
+# 问的是"对话本身"（"我前面问了什么""刚才说到哪了"）：答案在 short-term history 里，
+# 走模板直接复述，既不检索也不调模型。
+ROUTE_CONVERSATION_RECALL = "conversation_recall"
+# 知识库没收录，但属于**不随版本变动的稳定常识**：允许用通用理解作答、
+# 不展示来源。与 kb_miss 的分工见 synonyms.VERSION_SENSITIVE_RULES 的注释。
+ROUTE_KB_GENERAL = "kb_general"
 
 # 多意图优先级（分数相同时按此顺序裁决）
 PRIORITY = [INTENT_OUT_OF_SCOPE, INTENT_SITUATIONAL, INTENT_KNOWLEDGE, INTENT_CHITCHAT]
@@ -69,6 +77,7 @@ _SITU_SUBJECT_RE = re.compile(SITUATIONAL_SUBJECT)
 _SITU_CONTEXT_RE = re.compile(SITUATIONAL_CONTEXT)
 _OOS_RES = [(reason, re.compile(p)) for reason, p in OUT_OF_SCOPE_RULES]
 _KB_GAP_RES = [(reason, re.compile(p)) for reason, p in KB_GAP_RULES]
+_VERSION_SENSITIVE_RES = [(reason, re.compile(p)) for reason, p in VERSION_SENSITIVE_RULES]
 _CONDITION_REPLY_RES = [re.compile(p) for p in CONDITION_REPLY_PATTERNS]
 
 # 情境建议的关键条件：位置与阶段缺一不可（知道位置才能谈打法，知道阶段才能谈节奏）。
@@ -175,6 +184,26 @@ def is_kb_gap_question(text: str) -> str | None:
     for hero in HERO_NAME_POOL:
         if normalize(hero) in t:
             return "hero_entity"
+    return None
+
+
+def is_version_sensitive_question(text: str) -> str | None:
+    """问题是否落在"会随版本变动、不能靠通用理解补"的范围内。
+
+    返回敏感原因标签（refresh_time / number_value / price / scoring / version_data），
+    未命中返回 None。
+
+    它决定"未命中"之后是走通用理解（`kb_general`）还是如实说没有（`kb_miss`）：
+    实测把两者混为一谈的代价是——「王者荣耀一共有几种召唤师技能」这类完全答得上来的
+    常识问题，也会被一句"知识库没有收录"打发掉，具体数值类的边界反而没守住。
+    判定只看问题本身，不看检索结果；只判"是不是数值/算法类"，不判"知识库里有没有"。
+    """
+    t = normalize(text)
+    if not t:
+        return None
+    for reason, pattern in _VERSION_SENSITIVE_RES:
+        if pattern.search(t):
+            return reason
     return None
 
 
@@ -295,6 +324,23 @@ def classify(
             conditions=conditions,
             injection=injection,
             oos_reason="unsupported_instruction",
+        )
+
+    # 短路 1：问的是"对话本身"（"我前面问了什么"）。
+    # 放在注入安全网**之后**：夹带"忽略以上规则"的输入仍然按越界处理，不能被它绕开。
+    #
+    # 不放行到下面的"继承上一轮意图"：实测「你是谁 → 韩信是什么 → 我前面问了什么」
+    # 里，规则零信号 → 继承到 knowledge_qa → 拼接上一轮问题检索 → 未命中 →
+    # 回一句"知识库里没有收录"。历史就在手里却答"未收录"，是答非所问。
+    if is_conversation_recall(text):
+        return IntentResult(
+            intent=INTENT_CHITCHAT,
+            scores=scores,
+            matched={**matched, "conversation_recall": ["询问之前问过什么"]},
+            source="rule",
+            route_state=ROUTE_CONVERSATION_RECALL,
+            conditions=conditions,
+            injection=injection,
         )
 
     # 规则补充：在补上一轮追问的条件（"我玩的是悟空"），这种短句规则层原本毫无信号

@@ -8,7 +8,14 @@ from pydantic import BaseModel, Field
 
 Role = Literal["user", "assistant"]
 IntentName = Literal["knowledge_qa", "situational_advice", "chitchat", "out_of_scope"]
-RouteState = Literal["need_more_info", "kb_miss", "kb_gap", "unclear_input"]
+RouteState = Literal[
+    "need_more_info",
+    "kb_miss",
+    "kb_gap",
+    "kb_general",
+    "unclear_input",
+    "conversation_recall",
+]
 
 
 class ChatMessage(BaseModel):

@@ -18,12 +18,15 @@ from app.agent.intent import (
     INTENT_KNOWLEDGE,
     INTENT_OUT_OF_SCOPE,
     INTENT_SITUATIONAL,
+    ROUTE_CONVERSATION_RECALL,
     ROUTE_KB_GAP,
+    ROUTE_KB_GENERAL,
     ROUTE_KB_MISS,
     ROUTE_NEED_MORE_INFO,
     ROUTE_UNCLEAR_INPUT,
     IntentResult,
     classify,
+    is_version_sensitive_question,
 )
 from app.agent.llm import LLMClient, LLMError
 from app import memory
@@ -34,10 +37,14 @@ from app.agent.retrieval import (
     augment_query,
     load_knowledge_base,
     previous_user_message,
+    previous_user_messages,
 )
 from app.config import KNOWLEDGE_FILE, Settings, get_settings
 
 _request_counter = itertools.count(1)
+
+# 回顾"我前面问了什么"时最多复述几条：全部倒出来不像回答，像日志
+RECALL_MAX_QUESTIONS = 5
 
 
 def next_request_id() -> str:
@@ -143,10 +150,22 @@ class Agent:
             docs, near_titles, used_history = self._retrieve(message, history, intent_result)
         retrieval_ms = round((time.perf_counter() - t1) * 1000, 2)
 
-        # kb_gap 的判定与检索无关（问题本身就落在知识库覆盖缺口上），
-        # 因此不能被"未命中"覆盖成 kb_miss：这里只在路由状态还是空的时候才置 kb_miss。
+        # 知识问题没检到材料时，还要再分一次"缺的是什么"：
+        #   - 版本敏感的数值/算法 → kb_miss，如实说没有（宁可说不知道，也不给错数字）；
+        #   - 其余稳定常识 → kb_general，用通用理解作答（不展示来源）。
+        # 早期版本一律置 kb_miss，结果是「王者荣耀一共有几种召唤师技能」这类完全答得上来的
+        # 问题也被一句"知识库未收录"打发掉——看起来像个只会查表的机器，而该守住的数值边界
+        # 并没有因此变得更牢。
         if intent_result.intent == INTENT_KNOWLEDGE and not docs and result.route_state is None:
-            result.route_state = ROUTE_KB_MISS
+            sensitive_reason = is_version_sensitive_question(message)
+            if sensitive_reason:
+                result.route_state = ROUTE_KB_MISS
+                result.intent_detail["version_sensitive"] = sensitive_reason
+            else:
+                result.route_state = ROUTE_KB_GENERAL
+                result.guard["notes"].append(
+                    "知识库里没有这条材料，已改用通用理解作答，因此不展示引用来源"
+                )
 
         # [3] 生成：能确定回答的直接走模板，不需要模型
         llm_ms = 0
@@ -156,6 +175,12 @@ class Agent:
             # "没听懂"走模板：0 次模型调用、毫秒级返回，语气可以精心打磨成拟人化表达，
             # 不必让模型临场发挥（也更省一次调用）。
             result.answer = templates.unclear_input_answer(message)
+        elif result.route_state == ROUTE_CONVERSATION_RECALL:
+            # "我前面问了什么"：答案就在历史里，直接复述，既不检索也不调模型。
+            # 让模型凭记忆复述，反而可能编出一条玩家没问过的问题。
+            result.answer = templates.conversation_recall_answer(
+                previous_user_messages(history, limit=RECALL_MAX_QUESTIONS)
+            )
         elif result.route_state == ROUTE_KB_MISS:
             result.answer = templates.kb_miss_answer(near_titles)
         elif result.route_state == ROUTE_NEED_MORE_INFO:
@@ -200,7 +225,8 @@ class Agent:
             # 兜底：万一还有漏网的"半相关命中"，只要模型开门见山就说没收录，
             # 就统一按"覆盖不足"处理——既清空来源，也把路由状态标上。
             # 只清来源不改状态会导致界面自相矛盾：标着"正常回答"却一个来源都没有。
-            if is_no_coverage_leading(result.answer):
+            # kb_general 例外：它本来就没有材料、说明已在路由阶段写过，不必再叠一层。
+            if result.route_state != ROUTE_KB_GENERAL and is_no_coverage_leading(result.answer):
                 result.citations = []
                 if result.route_state is None:
                     result.route_state = ROUTE_KB_GAP

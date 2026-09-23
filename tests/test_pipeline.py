@@ -9,13 +9,16 @@ from app.agent.intent import (
     INTENT_KNOWLEDGE,
     INTENT_OUT_OF_SCOPE,
     INTENT_SITUATIONAL,
+    ROUTE_CONVERSATION_RECALL,
     ROUTE_KB_GAP,
+    ROUTE_KB_GENERAL,
     ROUTE_KB_MISS,
     ROUTE_NEED_MORE_INFO,
 )
 from app.agent.normalize import is_no_coverage_leading
 from app.agent.llm import LLMError, LLMResult
 from app.agent.pipeline import Agent
+from app.agent.prompt import KB_GENERAL_INSTRUCTION
 from app.agent.retrieval import load_knowledge_base
 from app.config import KNOWLEDGE_FILE, Settings
 
@@ -95,6 +98,54 @@ def test_kb_miss_template_lists_answerable_scope(settings: Settings) -> None:
         assert topic in result.answer
 
 
+def test_kb_miss_is_narrowed_to_version_sensitive_numbers(settings: Settings) -> None:
+    """kb_miss 现在只管"会随版本变动的数值/算法"这一类。
+
+    早期版本把所有未命中的知识问题都往这里塞，于是「一共有几种召唤师技能」
+    这种完全答得上来的常识问题也被一句"知识库没有收录"打发掉——
+    既不好用，也没换来更牢的数值边界（数值该不该编，跟检索到没到是两回事）。
+    """
+    agent, fake = build_agent(settings)
+    result = agent.answer("巅峰赛的积分是怎么计算的？")
+
+    assert result.route_state == ROUTE_KB_MISS
+    assert result.intent_detail["version_sensitive"] == "scoring"
+    assert fake.calls == []
+
+
+def test_unretrieved_common_sense_is_answered_generally(settings: Settings) -> None:
+    """没检索到材料、但属于稳定常识 → kb_general：用通用理解作答，不展示来源。
+
+    回归实测：「你爱吃什么」「你有病吗」这类非知识输入也曾落进 kb_miss，
+    回一句"知识库未收录"——玩家看到的就是"这个 AI 什么都不回答"。
+    """
+    fake = FakeLLM(reply="这条我手头没有现成的资料，我按通用理解讲一下：KDA 是击杀/死亡/助攻的比值……")
+    agent, _ = build_agent(settings, fake)
+    result = agent.answer("什么是KDA")
+
+    assert result.route_state == ROUTE_KB_GENERAL
+    assert len(fake.calls) == 1, "通用作答要真的走模型，而不是回拒答模板"
+    assert result.citations == [], "没有材料就不展示来源"
+    system_msgs = [m["content"] for m in fake.calls[0] if m["role"] == "system"]
+    assert any(KB_GENERAL_INSTRUCTION in c for c in system_msgs), "必须注入通用作答约束"
+    assert any("通用理解" in n for n in result.guard["notes"])
+
+
+def test_kb_general_instruction_forbids_fabricating_numbers(settings: Settings) -> None:
+    """通用作答必须同时写死"禁止给具体数值"，否则等于把版本敏感那档也放开了。"""
+    assert "禁止给具体数值" in KB_GENERAL_INSTRUCTION
+    assert "不要只说" in KB_GENERAL_INSTRUCTION, "不能退化成只声明一句「没收录」"
+
+
+def test_kb_general_is_not_relabelled_by_no_coverage_fallback(settings: Settings) -> None:
+    """模型在通用作答里说了一句"没收录"，不该被再次改判成 kb_gap（说明会重复）。"""
+    fake = FakeLLM(reply="这条我知识库里没有收录，我按通用理解讲一下：KDA 是击杀死亡助攻比。")
+    agent, _ = build_agent(settings, fake)
+    result = agent.answer("什么是KDA")
+    assert result.route_state == ROUTE_KB_GENERAL
+    assert not any("已按覆盖不足处理" in n for n in result.guard["notes"])
+
+
 def test_near_miss_titles_require_field_match(settings: Settings) -> None:
     """仅靠 BM25 字面重叠上榜的条目不得被当作"相关推荐"，否则会误导玩家。"""
     agent, _ = build_agent(settings)
@@ -125,7 +176,8 @@ def test_kb_gap_answers_with_general_knowledge_but_no_sources(settings: Settings
 
 
 def test_kb_gap_not_confused_with_kb_miss(settings: Settings) -> None:
-    """覆盖缺口与"未命中"是两回事：前者能用通用理解，后者必须如实说不知道。"""
+    """缺口有两种：英雄/动态数据的缺口能用通用理解（kb_gap），
+    版本敏感数值的缺口必须如实说不知道（kb_miss）。"""
     agent, _ = build_agent(settings)
     assert agent.answer("蔡文姬怎么玩").route_state == ROUTE_KB_GAP
     assert agent.answer("巅峰赛的积分是怎么计算的？").route_state == ROUTE_KB_MISS
@@ -288,6 +340,42 @@ def test_standalone_question_also_uses_history(settings: Settings) -> None:
     result = agent.answer("暴君什么时候打？", history)
     assert result.debug["retrieval_used_history"] is True
     assert any(c["id"] == "MAP-TYRANT-001" for c in result.citations)
+
+
+# --------------------------------------------------------------- 对话回顾
+def test_conversation_recall_uses_history_without_model(settings: Settings) -> None:
+    """「我前面问了什么」的答案就在历史里：直接复述，不检索、不调模型。
+
+    回归实测：三轮对话后问这句，早期版本继承上一轮意图去检索英雄名，
+    检不到就回"知识库里没有收录"——历史明明在手里，却答成"未收录"。
+    """
+    agent, fake = build_agent(settings)
+    history = [
+        {"role": "user", "content": "你是谁"},
+        {"role": "assistant", "content": "我是小玖，你的训练向导。"},
+        {"role": "user", "content": "韩信是什么"},
+        {"role": "assistant", "content": "韩信是刺客，常见走打野位。"},
+    ]
+    result = agent.answer("我前面问了什么", history)
+
+    assert result.intent == INTENT_CHITCHAT
+    assert result.route_state == ROUTE_CONVERSATION_RECALL
+    assert fake.calls == [], "答案在历史里，不该调用模型"
+    assert fake.classify_calls == 0, "不该调用模型兜底分类"
+    assert result.citations == []
+    assert result.timings["llm_ms"] == 0
+    assert "你是谁" in result.answer and "韩信是什么" in result.answer
+    assert "知识库" not in result.answer, "手里有历史，不能答成「未收录」"
+
+
+def test_conversation_recall_without_history_admits_first_turn(settings: Settings) -> None:
+    """第一句就问"我前面问了什么"时，如实说这是第一句，而不是硬拉知识库。"""
+    agent, fake = build_agent(settings)
+    result = agent.answer("我前面问了什么")
+
+    assert result.route_state == ROUTE_CONVERSATION_RECALL
+    assert fake.calls == []
+    assert "第一句" in result.answer
 
 
 # --------------------------------------------------------------- 闲聊

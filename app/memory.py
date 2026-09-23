@@ -231,8 +231,9 @@ class MemoryStore:
             profile.recent_questions.append(question)
         profile.recent_questions = profile.recent_questions[-MAX_RECENT_QUESTIONS:]
 
-        # 没答上来的问题单独留档：这是最值得回补知识库的信号
-        if not answer_had_kb and route_state in (None, "kb_miss", "kb_gap"):
+        # 没答上来的问题单独留档：这是最值得回补知识库的信号。
+        # kb_general 同样计入——它虽然用通用理解答了，但知识库确实缺这条材料。
+        if not answer_had_kb and route_state in (None, "kb_miss", "kb_gap", "kb_general"):
             if question and question not in profile.unresolved:
                 profile.unresolved.append(question)
             profile.unresolved = profile.unresolved[-MAX_UNRESOLVED:]

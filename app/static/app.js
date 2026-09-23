@@ -61,7 +61,9 @@
     need_more_info: "需要补充条件",
     kb_miss: "知识库未收录",
     kb_gap: "知识库未覆盖",
-    unclear_input: "没听明白"
+    kb_general: "通用理解作答",
+    unclear_input: "没听明白",
+    conversation_recall: "回顾之前的问题"
   };
   // 意图判定的来源：规则命中是毫秒级，走模型兜底则要 1 秒上下。
   // 把它显示出来，玩家/评审才能解释"为什么这一轮慢"——否则那个数字只是一个谜。
@@ -167,12 +169,14 @@
     wrap.appendChild(meta);
 
     // 知识库覆盖不到的问题：明确告诉玩家这段是通用理解，且本次没有可引用的来源
-    if (payload.route_state === "kb_gap") {
-      wrap.appendChild(el(
-        "div", "gap-notice",
-        "本条没有直接对应的知识条目（知识库只收录通用玩法规则，没有英雄资料与使用率数据）。" +
-        "以上为通用理解，仅供参考，因此不展示引用来源。"
-      ));
+    var GAP_NOTICE = {
+      kb_gap: "本条没有直接对应的知识条目（知识库只收录通用玩法规则，没有英雄资料与使用率数据）。" +
+        "以上为通用理解，仅供参考，因此不展示引用来源。",
+      kb_general: "知识库里没有收录这条内容，以上是用通用理解作答，仅供参考，" +
+        "具体数值与细节以客户端内说明为准，因此不展示引用来源。"
+    };
+    if (GAP_NOTICE[payload.route_state]) {
+      wrap.appendChild(el("div", "gap-notice", GAP_NOTICE[payload.route_state]));
     }
 
     // 来源：只展示后端真实检索到的条目，没有就不显示

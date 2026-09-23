@@ -13,6 +13,7 @@ from app.agent.intent import (
     INTENT_KNOWLEDGE,
     INTENT_SITUATIONAL,
     ROUTE_KB_GAP,
+    ROUTE_KB_GENERAL,
     ROUTE_KB_MISS,
     ROUTE_NEED_MORE_INFO,
 )
@@ -84,6 +85,18 @@ KB_GAP_INSTRUCTION = """玩家问的是**知识库覆盖不到**的内容（具�
 4. 全文控制在 200 字以内，语气自然，像在跟朋友讲解。
 
 不要在正文里写来源或链接——本次回答没有可直接引用的知识条目。"""
+
+KB_GENERAL_INSTRUCTION = """玩家问的这条**知识库里没有收录材料**，但它属于可以回答的常识类问题。请按下面三条回答：
+
+1. **先用一句话自然带过**"我这边没有现成的资料"（例如"这条我手头没有对应资料，我按通用理解讲一下"），
+   一句话即可。**不要只说"没有收录"就结束**——那是把玩家推开，玩家要的是答案。
+2. **然后必须给出实质内容**：讲清机制、概念、大致做法或判断标准，可以用你的通用游戏理解作答。
+   反过来，**禁止给具体数值**（伤害、冷却、刷新秒数、成长、概率、价格、胜率/使用率、
+   当前版本强度）——这类内容不在你的把握范围内，直接说"具体数值以客户端内说明为准"。
+3. 全文控制在 200 字以内，语气自然，像在跟朋友讲解。
+
+不要在正文里写来源或链接——本条没有可直接引用的知识条目。"""
+
 
 SITUATIONAL_INSTRUCTION = """玩家在描述自己的对局处境，请结合他给出的条件给建议。要求：
 1. 先给出 1-2 条最该做的事，按优先级排列，并说明为什么；
@@ -214,6 +227,8 @@ def build_messages(
         pass  # 该状态不走模型，由模板回答，不会进入本函数
     elif route_state == ROUTE_KB_GAP:
         messages.append({"role": "system", "content": KB_GAP_INSTRUCTION})
+    elif route_state == ROUTE_KB_GENERAL:
+        messages.append({"role": "system", "content": KB_GENERAL_INSTRUCTION})
     elif intent == INTENT_KNOWLEDGE:
         messages.append({"role": "system", "content": KNOWLEDGE_INSTRUCTION})
     elif intent == INTENT_SITUATIONAL:

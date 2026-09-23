@@ -1,14 +1,19 @@
 """确定性模板回答。
 
-用于三类场景（对应设计文档 §5.2）：
+用于四类场景（对应设计文档 §5.2）：
 1. 能力范围外请求 —— 不调用模型，既省时又彻底消除"顺口编造已执行操作"的可能；
-2. 知识未命中（kb_miss）—— 明确说明未收录并给出可回答范围，绝不伪造来源；
-3. 情境条件不足（need_more_info）—— 反问缺失的关键条件。
+2. 版本敏感且未命中（kb_miss）—— 明确说明未收录并给出可回答范围，绝不伪造数值。
+   注意这里是**收窄后**的 kb_miss：普通常识问题未命中不走它，而是走 kb_general
+   用通用理解作答（见 prompt.KB_GENERAL_INSTRUCTION）；
+3. 情境条件不足（need_more_info）—— 反问缺失的关键条件；
+4. 对话回顾（conversation_recall）—— 复述历史里问过的问题。
 
 模板回答不携带任何来源引用（citations 为空），因为这类回答没有使用知识材料。
 """
 
 from __future__ import annotations
+
+from app.agent.normalize import truncate
 
 SCOPE_HINT = "我能回答的是对局目标、地图机制、位置职责和基础操作这几类基础问题"
 
@@ -134,3 +139,36 @@ def need_more_info_answer(missing: list[str] | None = None) -> str:
 def is_need_more_info_reply(text: str) -> bool:
     """这条助手回答是不是"追问补充条件"的模板（用于避免反复追问）。"""
     return NEED_MORE_INFO_PREFIX in (text or "")
+
+
+# --------------------------------------------------------------- 对话回顾
+# 玩家问"我前面问了什么"时的回答。
+#
+# 为什么用模板而不是让模型复述：答案就在 short-term history 里，是一次确定性查找；
+# 交给模型反而可能把没问过的问题说成问过（"顺口编造历史"比编造知识更伤信任）。
+# 模板回答 = 0 次模型调用 + 永远与真实历史一致。
+RECALL_NO_HISTORY = (
+    "你这条之前还没问过我什么呢，这是我们对话的第一句。\n\n"
+    f"{SCOPE_HINT}，挑一个直接问就行。"
+)
+
+RECALL_ONE = "你前面问的是「{item}」。\n\n要我接着说这条，还是换个问题？"
+
+RECALL_MANY = (
+    "你前面问过我这几条：\n\n{items}\n\n"
+    "想接着哪条往下聊，或者换个话题，都可以。"
+)
+
+# 复述时每条截断长度：回顾的用途是"提醒你问过什么"，不是把原话一字不差抄回来
+_RECALL_ITEM_LIMIT = 60
+
+
+def conversation_recall_answer(questions: list[str] | None = None) -> str:
+    """按历史里的用户提问回答"我前面问了什么"（确定性、0 次模型调用）。"""
+    items = [truncate(q.strip(), _RECALL_ITEM_LIMIT) for q in (questions or []) if q and q.strip()]
+    if not items:
+        return RECALL_NO_HISTORY
+    if len(items) == 1:
+        return RECALL_ONE.format(item=items[0])
+    bullets = "\n".join(f"{i}. {q}" for i, q in enumerate(items, 1))
+    return RECALL_MANY.format(items=bullets)

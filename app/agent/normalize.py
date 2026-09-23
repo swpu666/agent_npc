@@ -9,6 +9,7 @@ import re
 import unicodedata
 
 from app.agent.synonyms import (
+    CONVERSATION_RECALL_PATTERNS,
     GAME_ALIASES,
     HERO_HINTS,
     INJECTION_PATTERNS,
@@ -82,6 +83,35 @@ def detect_anaphora(text: str) -> bool:
     """是否出现指代/承接表达，需要借助历史补全检索意图。"""
     t = normalize(text)
     return any(m in t for m in ANAPHORA_MARKERS)
+
+
+_RECALL_RES = [re.compile(p) for p in CONVERSATION_RECALL_PATTERNS]
+
+# 回顾类问句的长度上限：它是一句元提问（"我前面问了什么"），不会很长。
+# 放宽这个界限只会把"我前面问的暴君刷新时间是多少"这类真问题卷进来。
+_RECALL_MAX_CHARS = 20
+
+
+def is_conversation_recall(text: str) -> bool:
+    """是否在问**对话本身**（"我前面问了什么""刚才说到哪了"）。
+
+    这类问题属于对话元信息，不属于游戏知识：把它当知识问题去检索，
+    只会白白检不到、再回一句"知识库里没收录"——而答案就在 short-term
+    history 里。判定必须在规则层完成，且不消耗模型调用。
+
+    三条护栏（缺一不可）：
+    1. 是短句——元提问不会长；
+    2. 不含游戏主题词——「我刚才说的连招是什么」问的是连招，不是回顾；
+    3. 不含情境条件（位置/阶段/英雄）——同上。
+    """
+    t = normalize(text)
+    if not t or len(t) > _RECALL_MAX_CHARS:
+        return False
+    if has_topic_term(t):
+        return False
+    if any(extract_conditions(t).values()):
+        return False
+    return any(r.search(t) for r in _RECALL_RES)
 
 
 # "那 XX 呢 / XX 呢"：把上一轮的话题换个对象再问一遍。

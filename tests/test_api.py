@@ -101,6 +101,29 @@ def test_meaningless_input_answer_is_deterministic(client: TestClient) -> None:
     assert first == second
 
 
+def test_chat_answers_conversation_recall_from_history(client: TestClient) -> None:
+    """接口层要能正常返回 conversation_recall（响应模型的 RouteState 枚举必须包含它）。"""
+    history = [
+        {"role": "user", "content": "你是谁"},
+        {"role": "assistant", "content": "我是小玖，你的训练向导。"},
+    ]
+    resp = client.post("/api/chat", json={"message": "我前面问了什么", "history": history})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["route_state"] == "conversation_recall"
+    assert body["timings"]["llm_ms"] == 0, "走模板回答，不该调用模型"
+    assert "你是谁" in body["answer"]
+
+
+def test_chat_returns_kb_general_route(client: TestClient) -> None:
+    """未命中但属于稳定常识 → 正常返回 kb_general（响应模型枚举必须包含它）。"""
+    resp = client.post("/api/chat", json={"message": "什么是KDA"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["route_state"] == "kb_general"
+    assert body["citations"] == []
+
+
 def test_chat_ignores_invalid_history_items(client: TestClient) -> None:
     resp = client.post(
         "/api/chat",
