@@ -208,6 +208,22 @@ def test_hidden_attribute_is_not_overridden_by_layout_css(client: TestClient) ->
         assert "hidden" in client.get(path).text
 
 
+def test_frontend_api_paths_stay_relative_for_subpath_deploy(client: TestClient) -> None:
+    """前端接口地址必须用相对路径：站点部署在子路径 /agentnpc/ 下。
+
+    绝对路径 "/api/…" 会绕过部署前缀、被网关判 404——实测使用者点「玩家画像」时
+    「画像读取失败 / 知识缺口读取失败 服务返回了错误码 404」就是这么来的
+    （聊天用的是相对路径，所以一直正常）。
+    """
+    index = client.get("/").text
+    assert '<base href="/agentnpc/" />' in index, "页面靠 <base> 决定接口前缀，测试的前提是它还在"
+
+    js = client.get("/static/app.js").text
+    for call in ("fetch", "getJson"):
+        assert f'{call}("/api/' not in js, f"{call} 不得写绝对接口路径"
+        assert f"{call}('/api/" not in js, f"{call} 不得写绝对接口路径"
+
+
 def test_no_api_key_in_frontend_assets(client: TestClient) -> None:
     """前端资源与接口响应中不得出现密钥。"""
     for path in ("/", "/static/app.js", "/static/style.css"):

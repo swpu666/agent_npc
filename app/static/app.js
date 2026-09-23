@@ -435,6 +435,10 @@
   // 统一拿 JSON：区分「网络失败 / HTTP 非 2xx / 非 JSON 响应」三种失败，便于精确报错。
   // 后端的 memory / knowledge-gaps 接口在任何情况下都返回 200 + 合法 JSON，
   // 所以“读取失败”几乎一定是请求没到达或网关回了 HTML 错误页（见 eval/badcases/README.md）。
+  //
+  // 注意：url 必须是**相对地址**（"api/…"），由页面里的 <base href="/agentnpc/"> 决定最终前缀。
+  // 写成绝对路径 "/api/…" 会被解析到站点根目录、绕过子路径部署，网关直接回 404 —
+  // 实测「画像读取失败 / 知识缺口读取失败」就是这么来的。
   function getJson(url) {
     return fetch(url).then(function (r) {
       if (!r.ok) {
@@ -475,7 +479,7 @@
     memoryBody.innerHTML = "";
     memoryMeta.textContent = "会话 " + sessionId;
     // 画像接口失败：只报画像，不连坐知识缺口（两者失败原因可能不同）。
-    getJson("/api/memory/" + encodeURIComponent(sessionId))
+    getJson("api/memory/" + encodeURIComponent(sessionId))
       .then(function (d) {
         var s = d.profile || {};
         memoryBody.appendChild(memoryCard("系统记住的内容（本会话）", d.summary || []));
@@ -499,7 +503,7 @@
       })
       .catch(function (err) { memoryFailCard("画像", err); });
     // 知识缺口接口单独请求、单独报错，避免把它的失败误报成“画像失败”。
-    getJson("/api/knowledge-gaps?limit=10")
+    getJson("api/knowledge-gaps?limit=10")
       .then(function (g) {
         var lines = (g.gaps || []).map(function (item) {
           return item.count > 1 ? item.question + "（被问 " + item.count + " 次）" : item.question;
@@ -528,7 +532,7 @@
   }
   if (btnMemoryClear) {
     btnMemoryClear.addEventListener("click", function () {
-      fetch("/api/memory/" + encodeURIComponent(sessionId), { method: "DELETE" })
+      fetch("api/memory/" + encodeURIComponent(sessionId), { method: "DELETE" })
         .then(function (r) { return r.json(); })
         .then(function (d) {
           memoryMeta.textContent = d.cleared ? "已清除该会话记忆" : "本来就没有记录";

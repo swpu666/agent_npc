@@ -51,12 +51,18 @@
 - **复现**：让上游对 `/api/memory/` 或 `/api/knowledge-gaps` 返回 `Content-Type: text/html` 的 502 页。
 - **修复**：见第三节代码改动（区分错误类型 + 两次 fetch 分别报错）。
 
-### BC-4　相对 / 绝对路径不一致，部署在子路径下 404
+### BC-4　绝对路径绕过子路径部署 → 404　【2026-09-23 实测复现】
 
-- **现象**：`api/memory/`（行 435/489）用相对路径，而 `/api/knowledge-gaps`（行 457）用绝对路径。
-  若部署在子路径（如 `https://host/app/`），相对路径解析成 `/app/api/memory/…`，后端只在 `/api/…`，导致 404 / 网关错误。
-- **根因**：同一个抽屉里两种写法混用，子路径部署下必有一边错。
-- **修复**：统一成绝对路径 `/api/…`（或加 `<base href>`）。见第三节。
+- **现象**：站点部署在子路径下（`index.html` 里 `<base href="/agentnpc/" />`）。
+  页面里 `fetch("api/chat")` 这类**相对地址**会正确拼成 `/agentnpc/api/chat`；
+  而 `getJson("/api/memory/…")`、`getJson("/api/knowledge-gaps")` 这类**绝对地址**
+  会直接打到站点根 `/api/…`，被网关（nginx `location /` 指向另一个站点）判 **404**。
+- **根因**：同一个抽屉里两种写法混用；绝对路径绕过了部署前缀。
+- **实测**：使用者在 `/agentnpc/` 下点「玩家画像」，抽屉里出现
+  「画像读取失败 · 服务返回了错误码 404」与「知识缺口读取失败 · 服务返回了错误码 404」；
+  同时 `curl http://127.0.0.1:8000/api/memory/<sid>` 与 `/api/knowledge-gaps` 均 200。
+- **修复**：前端接口地址**统一用相对路径**（`api/…`），前缀交给 `<base href>` 决定；
+  并在 `tests/test_api.py` 里禁止 `fetch("/api/` / `getJson("/api/` 回归。
 
 ### BC-5（潜在）错误消息有误导性：可能是「知识缺口」先挂
 
@@ -89,7 +95,9 @@
 
 - 抽一个 `getJson(url)`，区分三种失败：网络错误 / HTTP 非 2xx / 非 JSON 响应。
 - 两次 fetch 分别捕获，画像失败说「画像读取失败」，知识缺口失败说「知识缺口读取失败」，不再张冠李戴。
-- `api/memory/…` 改为绝对路径 `/api/memory/…`，与 `knowledge-gaps` 保持一致（BC-4）。
+- 接口地址统一为**相对路径** `api/…`，前缀由页面 `<base href>` 决定。
+  （早期版本把 `api/memory/…` 改成了绝对路径 `/api/memory/…` 去"对齐" knowledge-gaps，
+  方向正好相反：子路径部署下那才是 404 的来源——见 BC-4。）
 
 ---
 
